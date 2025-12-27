@@ -518,7 +518,7 @@
             Conectar Planilha
         </button>
 
-         <button class="btn-primary" id="connectOtherWayBtn" style="margin-top: 1rem; width: 100%;">
+        <button class="btn-primary" id="connectOtherWayBtn" style="margin-top: 1rem; width: 100%;">
             Conectar outra Planilha
         </button>
     </div>
@@ -632,7 +632,7 @@
     </div>
     <script src="env.js"></script>
     <script>
-        
+
         // Estado da aplicação
 
         const state = {
@@ -713,7 +713,7 @@
             document.getElementById('connectBtn').addEventListener('click', connectGoogleSheets);
 
             //Google Sheets other way
-            document.getElementById('connectOtherWayBtn').addEventListener('click', function() {
+            document.getElementById('connectOtherWayBtn').addEventListener('click', function () {
                 connectGoogleSheets(true);
             });
 
@@ -742,14 +742,14 @@
         async function connectGoogleSheets(otherway) {
 
             if (otherway === true) {
-                var sheetIdValue = document.getElementById('sheetId').value;
-                var apiKeyValue = document.getElementById('apiKey').value;
+                var sheetId = document.getElementById('sheetId').value;
+                var apiKey = document.getElementById('apiKey').value;
             } else {
-                var sheetIdValue = defaultSheetId;
-                var apiKeyValue = defautApiKey;
+                var sheetId = defaultSheetId;
+                var apiKey = defautApiKey;
             }
 
-            if (!sheetIdValue || !apiKeyValue) {
+            if (!sheetId || !apiKey) {
                 alert('Por favor, preencha o ID da planilha e a chave da API');
                 return;
             }
@@ -763,9 +763,9 @@
             btnOtherWay.disabled = true;
 
             try {
-                const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetIdValue}?key=${apiKeyValue}`;
+                let range = 'Transações!A2:F';
+                let url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}?key=${apiKey}`;
 
-                console.log('url', url)
 
                 const response = await fetch(url);
                 const data = await response.json();
