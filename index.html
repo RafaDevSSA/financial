@@ -508,20 +508,68 @@
             <div class="form-group">
                 <label>ID da Planilha</label>
                 <input type="text" id="sheetId" placeholder="ID da sua planilha do Google Sheets">
+                <small style="color: #8b92b5; font-size: 0.8rem; margin-top: 0.25rem; display: block;">
+                    Extraia da URL: docs.google.com/spreadsheets/d/<strong>ID_AQUI</strong>/edit
+                </small>
             </div>
             <div class="form-group">
                 <label>API Key</label>
                 <input type="password" id="apiKey" placeholder="Sua chave da API do Google">
+                <small style="color: #8b92b5; font-size: 0.8rem; margin-top: 0.25rem; display: block;">
+                    Obtenha em: console.cloud.google.com
+                </small>
             </div>
         </div>
-        <button class="btn-primary" id="connectBtn" style="margin-top: 1rem; width: 100%;">
-            Conectar Planilha
-        </button>
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-top: 1rem;">
+            <button class="btn-primary" id="connectBtn">
+                Conectar Planilha
+            </button>
+            <button onclick="testConnection()"
+                style="background: rgba(100, 255, 180, 0.1); color: #64ffb4; border: 1px solid #64ffb4; padding: 0.75rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Space Grotesk', sans-serif;">
+                Testar
+            </button>
+        </div>
+        <p class="info-text">
+            💡 Modo local ativo. Seus dados são salvos no navegador.<br>
+            ⚠️ <strong>Limitação da API Key:</strong> Permite apenas LEITURA do Google Sheets.<br>
+            📝 Para salvar no Sheets: Use o botão "Copiar para Sheets" e cole na planilha (Ctrl+V).
+        </p>
 
-        <button class="btn-primary" id="connectOtherWayBtn" style="margin-top: 1rem; width: 100%;">
-            Conectar outra Planilha
-        </button>
+        <details style="margin-top: 1rem; color: #8b92b5; font-size: 0.85rem;">
+            <summary style="cursor: pointer; color: #64ffb4; margin-bottom: 0.5rem;">📋 Estrutura da Planilha</summary>
+            <div style="background: rgba(20, 25, 45, 0.5); padding: 1rem; border-radius: 8px; margin-top: 0.5rem;">
+                <p style="margin-bottom: 0.5rem;"><strong>Nome da aba:</strong> "Transações" ou "Sheet1"</p>
+                <p style="margin-bottom: 0.5rem;"><strong>Linha 1 (cabeçalho):</strong></p>
+                <code
+                    style="display: block; background: rgba(0, 0, 0, 0.3); padding: 0.5rem; border-radius: 4px; margin-bottom: 0.5rem;">
+                    type | description | amount | date | paid | category
+                </code>
+                <p style="margin-bottom: 0.5rem;"><strong>Exemplo de dados (linha 2+):</strong></p>
+                <code style="display: block; background: rgba(0, 0, 0, 0.3); padding: 0.5rem; border-radius: 4px;">
+                    expense | Aluguel | 1500 | 2025-01-10 | TRUE | Moradia
+                </code>
+            </div>
+        </details>
     </div>
+
+    <!-- Status de Sincronização -->
+    <div id="syncStatus"
+        style="display: none; position: fixed; bottom: 2rem; right: 2rem; background: rgba(30, 35, 60, 0.95); border: 1px solid rgba(100, 255, 180, 0.3); border-radius: 12px; padding: 1rem; z-index: 999; backdrop-filter: blur(10px); animation: slideIn 0.3s ease;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div id="syncSpinner"
+                style="width: 20px; height: 20px; border: 2px solid rgba(100, 255, 180, 0.3); border-top-color: #64ffb4; border-radius: 50%; animation: spin 1s linear infinite;">
+            </div>
+            <span id="syncText" style="color: #64ffb4; font-weight: 600;">Sincronizando...</span>
+        </div>
+    </div>
+
+    <style>
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 
     <!-- Seletor de Mês -->
     <div class="month-selector">
@@ -630,23 +678,223 @@
             </form>
         </div>
     </div>
-    <script src="env.js"></script>
+    <script src="../env.js"></script>
     <script>
-
         // Estado da aplicação
-
         const state = {
             selectedMonth: new Date().getMonth(),
             selectedYear: new Date().getFullYear(),
             transactions: [],
             googleSheetsConnected: false,
-            activeTab: 'dashboard'
+            activeTab: 'dashboard',
+            sheetId: defaultSheetId || '',
+            apiKey: defautApiKey || ''
         };
 
         const months = [
             'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
             'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
         ];
+
+        // Funções de LocalStorage
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem('financialTransactions', JSON.stringify(state.transactions));
+                localStorage.setItem('financialConfig', JSON.stringify({
+                    sheetId: state.sheetId,
+                    apiKey: state.apiKey,
+                    googleSheetsConnected: state.googleSheetsConnected
+                }));
+                return true;
+            } catch (error) {
+                console.error('Erro ao salvar no localStorage:', error);
+                return false;
+            }
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const transactions = localStorage.getItem('financialTransactions');
+                const config = localStorage.getItem('financialConfig');
+
+                if (transactions) {
+                    state.transactions = JSON.parse(transactions);
+                }
+
+                if (config) {
+                    const cfg = JSON.parse(config);
+                    state.sheetId = cfg.sheetId || '';
+                    state.apiKey = cfg.apiKey || '';
+                    state.googleSheetsConnected = cfg.googleSheetsConnected || false;
+
+                    if (state.googleSheetsConnected && state.sheetId && state.apiKey) {
+                        document.getElementById('sheetId').value = state.sheetId;
+                        document.getElementById('apiKey').value = state.apiKey;
+                        document.getElementById('googleSheetsCard').style.display = 'none';
+                        addSyncButton();
+                    }
+                }
+
+                return true;
+            } catch (error) {
+                console.error('Erro ao carregar do localStorage:', error);
+                return false;
+            }
+        }
+
+        // Funções de feedback visual
+        function showSyncStatus(message, type = 'loading') {
+            const status = document.getElementById('syncStatus');
+            const text = document.getElementById('syncText');
+            const spinner = document.getElementById('syncSpinner');
+
+            if (type === 'loading') {
+                spinner.style.display = 'block';
+                text.style.color = '#64ffb4';
+            } else if (type === 'success') {
+                spinner.style.display = 'none';
+                text.style.color = '#64ffb4';
+            } else if (type === 'error') {
+                spinner.style.display = 'none';
+                text.style.color = '#ff6464';
+            }
+
+            text.textContent = message;
+            status.style.display = 'block';
+        }
+
+        function hideSyncStatus() {
+            const status = document.getElementById('syncStatus');
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 3000);
+        }
+
+        function showSuccessMessage(message) {
+            showSyncStatus('✓ ' + message, 'success');
+            hideSyncStatus();
+        }
+
+        function showErrorMessage(message) {
+            showSyncStatus('✗ ' + message, 'error');
+            hideSyncStatus();
+        }
+
+        // Exportar para clipboard (copiar para Google Sheets)
+        function exportToClipboard() {
+            const rows = state.transactions.map(t => [
+                t.type,
+                t.description,
+                t.amount,
+                t.date,
+                t.paid ? 'TRUE' : 'FALSE',
+                t.category
+            ]);
+
+            // Converte para formato TSV (Tab-separated values) que o Sheets aceita
+            const tsv = rows.map(row => row.join('\t')).join('\n');
+
+            navigator.clipboard.writeText(tsv).then(() => {
+                showSuccessMessage('Dados copiados! Cole no Google Sheets (Ctrl+V)');
+            }).catch(err => {
+                showErrorMessage('Erro ao copiar');
+                console.error('Erro ao copiar:', err);
+            });
+        }
+
+        // Adicionar botão de sincronização
+        function addSyncButton() {
+            const existing = document.getElementById('syncBtn');
+            if (existing) return; // Já existe
+
+            const header = document.querySelector('.header');
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.cssText = 'display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;';
+
+            // Botão de importar (ler do Sheets)
+            const syncBtn = document.createElement('button');
+            syncBtn.id = 'syncBtn';
+            syncBtn.className = 'btn-primary';
+            syncBtn.onclick = syncWithGoogleSheets;
+            syncBtn.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 0.5rem;">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+                Importar do Sheets
+            `;
+
+            // Botão de exportar (copiar para colar no Sheets)
+            const exportBtn = document.createElement('button');
+            exportBtn.className = 'btn-primary';
+            exportBtn.onclick = exportToClipboard;
+            exportBtn.style.background = 'linear-gradient(135deg, #64b4ff 0%, #3c8cc8 100%)';
+            exportBtn.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 0.5rem;">
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                </svg>
+                Copiar para Sheets
+            `;
+
+            buttonContainer.appendChild(syncBtn);
+            buttonContainer.appendChild(exportBtn);
+            header.appendChild(buttonContainer);
+        }
+
+        // Sincronizar (importar) do Google Sheets
+        async function syncWithGoogleSheets() {
+            if (!state.sheetId || !state.apiKey) {
+                alert('Configure a conexão com Google Sheets primeiro!');
+                return;
+            }
+
+            showSyncStatus('Importando do Google Sheets...', 'loading');
+
+            const sheetId = state.sheetId;
+            const apiKey = state.apiKey;
+
+            try {
+                let range = 'Transações!A2:F';
+                let url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}?key=${apiKey}`;
+
+                let response = await fetch(url);
+                let data = await response.json();
+
+                if (data.error) {
+                    range = 'Sheet1!A2:F';
+                    url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}?key=${apiKey}`;
+                    response = await fetch(url);
+                    data = await response.json();
+                }
+
+                if (data.error) {
+                    throw new Error(data.error.message);
+                }
+
+                if (data.values && data.values.length > 0) {
+                    state.transactions = data.values.map((row, index) => ({
+                        id: index + 1,
+                        type: row[0] || 'expense',
+                        description: row[1] || 'Sem descrição',
+                        amount: parseFloat(row[2]) || 0,
+                        date: row[3] || new Date().toISOString().split('T')[0],
+                        paid: row[4] === 'TRUE' || row[4] === 'true' || row[4] === true,
+                        category: row[5] || 'Sem categoria'
+                    }));
+
+                    saveToLocalStorage();
+                    showSuccessMessage('Importado! ' + state.transactions.length + ' transações');
+                    updateUI();
+                } else {
+                    showErrorMessage('Nenhuma transação encontrada');
+                }
+            } catch (error) {
+                console.error('Erro ao sincronizar:', error);
+                showErrorMessage('Erro ao importar: ' + error.message);
+            }
+        }
 
         // Dados de exemplo
         const sampleData = [
@@ -662,7 +910,15 @@
 
         // Inicializar
         function init() {
-            state.transactions = [...sampleData];
+            // Tenta carregar do localStorage primeiro
+            const loaded = loadFromLocalStorage();
+
+            // Se não tiver dados no localStorage, usa dados de exemplo
+            if (!loaded || state.transactions.length === 0) {
+                state.transactions = [...sampleData];
+                saveToLocalStorage(); // Salva os dados de exemplo
+            }
+
             setupEventListeners();
             updateUI();
         }
@@ -712,11 +968,6 @@
             // Google Sheets
             document.getElementById('connectBtn').addEventListener('click', connectGoogleSheets);
 
-            //Google Sheets other way
-            document.getElementById('connectOtherWayBtn').addEventListener('click', function () {
-                connectGoogleSheets(true);
-            });
-
             // Data inicial do form
             document.getElementById('transactionDate').valueAsDate = new Date();
         }
@@ -739,15 +990,9 @@
         }
 
         // Conectar Google Sheets
-        async function connectGoogleSheets(otherway) {
-
-            if (otherway === true) {
-                var sheetId = document.getElementById('sheetId').value;
-                var apiKey = document.getElementById('apiKey').value;
-            } else {
-                var sheetId = defaultSheetId;
-                var apiKey = defautApiKey;
-            }
+        async function connectGoogleSheets() {
+            const sheetId = document.getElementById('sheetId').value.trim() || state.sheetId;
+            const apiKey = document.getElementById('apiKey').value.trim() || state.apiKey;
 
             if (!sheetId || !apiKey) {
                 alert('Por favor, preencha o ID da planilha e a chave da API');
@@ -758,41 +1003,94 @@
             btn.textContent = 'Conectando...';
             btn.disabled = true;
 
-            const btnOtherWay = document.getElementById('connectOtherWayBtn');
-            btnOtherWay.textContent = 'Conectando...';
-            btnOtherWay.disabled = true;
-
             try {
+                // Tenta primeiro com o nome exato da aba
                 let range = 'Transações!A2:F';
                 let url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}?key=${apiKey}`;
 
+                let response = await fetch(url);
+                let data = await response.json();
 
-                const response = await fetch(url);
-                const data = await response.json();
+                // Se der erro, tenta com Sheet1
+                if (data.error) {
+                    console.log('Tentando com Sheet1...');
+                    range = 'Sheet1!A2:F';
+                    url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}?key=${apiKey}`;
+                    response = await fetch(url);
+                    data = await response.json();
+                }
 
-                if (data.values) {
+                // Se ainda der erro, mostra mensagem detalhada
+                if (data.error) {
+                    throw new Error(data.error.message || 'Erro ao acessar a planilha. Verifique se a planilha está pública e se a aba se chama "Transações" ou "Sheet1"');
+                }
+
+                if (data.values && data.values.length > 0) {
                     state.transactions = data.values.map((row, index) => ({
                         id: index + 1,
-                        type: row[0],
-                        description: row[1],
-                        amount: parseFloat(row[2]),
-                        date: row[3],
-                        paid: row[4] === 'TRUE' || row[4] === 'true',
+                        type: row[0] || 'expense',
+                        description: row[1] || 'Sem descrição',
+                        amount: parseFloat(row[2]) || 0,
+                        date: row[3] || new Date().toISOString().split('T')[0],
+                        paid: row[4] === 'TRUE' || row[4] === 'true' || row[4] === true,
                         category: row[5] || 'Sem categoria'
                     }));
 
+                    // Salva as credenciais no estado
+                    state.sheetId = sheetId;
+                    state.apiKey = apiKey;
                     state.googleSheetsConnected = true;
+
+                    // Esconde o card e mostra botão de sincronização
                     document.getElementById('googleSheetsCard').style.display = 'none';
-                    alert('Conectado com sucesso ao Google Sheets!');
+                    addSyncButton();
+
+                    alert(`Conectado com sucesso! ${state.transactions.length} transações importadas.\n\n📋 Como funciona:\n✓ Importar: Atualiza dados do Sheets para a aplicação\n✓ Copiar: Copia dados da aplicação para colar no Sheets\n\n⚠️ API Key só permite LEITURA.\nUse "Copiar para Sheets" para salvar mudanças na planilha.`);
                     updateUI();
+                } else {
+                    alert('Planilha conectada, mas não há dados. Adicione transações na planilha e reconecte.');
                 }
             } catch (error) {
-                alert('Erro ao conectar: ' + error.message);
+                console.error('Erro detalhado:', error);
+                alert('Erro ao conectar: ' + error.message + '\n\nVerifique:\n1. ID da planilha está correto\n2. API Key está correta\n3. Planilha está pública (qualquer pessoa com link pode visualizar)\n4. A aba se chama "Transações" ou "Sheet1"');
             } finally {
                 btn.textContent = 'Conectar Planilha';
                 btn.disabled = false;
-                btnOtherWay.textContent = 'Conectar outra Planilha';
-                btnOtherWay.disabled = false;
+            }
+        }
+
+        // Testar conexão
+        async function testConnection() {
+            const sheetId = document.getElementById('sheetId').value.trim();
+            const apiKey = document.getElementById('apiKey').value.trim();
+
+            if (!sheetId || !apiKey) {
+                alert('⚠️ Preencha o ID da planilha e a API Key primeiro!');
+                return;
+            }
+
+            const testUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?key=${apiKey}`;
+
+            try {
+                const response = await fetch(testUrl);
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('❌ Erro na conexão!\n\n' + data.error.message +
+                        '\n\nPossíveis causas:\n' +
+                        '• ID da planilha incorreto\n' +
+                        '• API Key inválida\n' +
+                        '• Planilha não está pública\n' +
+                        '• Google Sheets API não ativada');
+                } else {
+                    const sheetNames = data.sheets.map(s => s.properties.title).join(', ');
+                    alert('✅ Conexão OK!\n\n' +
+                        `Planilha: ${data.properties.title}\n` +
+                        `Abas disponíveis: ${sheetNames}\n\n` +
+                        'Agora você pode clicar em "Conectar Planilha"');
+                }
+            } catch (error) {
+                alert('❌ Erro ao testar conexão!\n\n' + error.message);
             }
         }
 
@@ -808,6 +1106,7 @@
         }
 
         // Adicionar transação
+        // Adicionar transação
         function handleAddTransaction(e) {
             e.preventDefault();
 
@@ -822,6 +1121,12 @@
             };
 
             state.transactions.push(transaction);
+
+            // Salva no localStorage
+            if (saveToLocalStorage()) {
+                showSuccessMessage('Transação salva!');
+            }
+
             closeModal();
             updateUI();
         }
@@ -829,11 +1134,22 @@
         // Toggle paid status
         function togglePaid(id) {
             const transaction = state.transactions.find(t => t.id === id);
-            if (transaction) {
-                transaction.paid = !transaction.paid;
-                updateUI();
+            if (!transaction) return;
+
+            transaction.paid = !transaction.paid;
+
+            // Salva no localStorage
+            if (saveToLocalStorage()) {
+                showSuccessMessage('Status atualizado!');
             }
+
+            updateUI();
+            /* const transDate = new Date(t.date);
+             return transDate.getMonth() === state.selectedMonth && 
+                    transDate.getFullYear() === state.selectedYear;
+         });*/
         }
+
 
         // Filtrar transações do mês
         function getFilteredTransactions() {
@@ -843,6 +1159,7 @@
                     transDate.getFullYear() === state.selectedYear;
             });
         }
+
 
         // Calcular estatísticas
         function calculateStats() {
