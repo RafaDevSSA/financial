@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Financeiro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            font-family: 'Space Grotesk', system-ui, sans-serif;
+            color: #e8e9f3;
+            padding: 2rem;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .header {
+            margin-bottom: 2rem;
+            animation: slideIn 0.5s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #64ffb4 0%, #3cc88c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .btn-back {
+            background: linear-gradient(135deg, #64ffb4 0%, #3cc88c 100%);
+            color: #0a0e27;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .btn-back:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(100, 255, 180, 0.4);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(30, 35, 60, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(100, 255, 180, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            animation: slideIn 0.6s ease-out;
+        }
+
+        .stat-card:hover {
+            border-color: rgba(100, 255, 180, 0.3);
+            transform: translateY(-2px);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card .label {
+            color: #8b92b5;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stat-card .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .stat-card .subtitle {
+            font-size: 0.85rem;
+            color: #8b92b5;
+            margin-top: 0.5rem;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card {
+            background: rgba(30, 35, 60, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(100, 255, 180, 0.1);
+            border-radius: 16px;
+            padding: 1.5rem;
+            animation: slideIn 0.7s ease-out;
+        }
+
+        .chart-card:hover {
+            border-color: rgba(100, 255, 180, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .chart-card h3 {
+            color: #64ffb4;
+            margin-bottom: 1.5rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .chart-container.tall {
+            height: 400px;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #8b92b5;
+            padding: 3rem;
+            font-size: 1.1rem;
+        }
+
+        .no-data svg {
+            margin-bottom: 1rem;
+        }
+
+        .category-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .category-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: rgba(20, 25, 45, 0.5);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            border-left: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .category-item:hover {
+            background: rgba(30, 35, 60, 0.7);
+            border-left-color: #64ffb4;
+        }
+
+        .category-name {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .category-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .category-amount {
+            font-weight: 600;
+            color: #ff6464;
+        }
+
+        .period-selector {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .period-btn {
+            background: rgba(30, 35, 60, 0.8);
+            border: 1px solid rgba(100, 255, 180, 0.2);
+            color: #8b92b5;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .period-btn:hover {
+            border-color: #64ffb4;
+            color: #64ffb4;
+        }
+
+        .period-btn.active {
+            background: linear-gradient(135deg, #64ffb4 0%, #3cc88c 100%);
+            color: #0a0e27;
+            border-color: transparent;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-container {
+                height: 250px;
+            }
+
+            .chart-container.tall {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div>
+            <h1>📊 Dashboard Financeiro</h1>
+            <p style="color: #8b92b5; margin-top: 0.5rem;">Análise completa das suas finanças</p>
+        </div>
+        <a href="index.html" class="btn-back">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Voltar
+        </a>
+    </div>
+
+    <!-- Período -->
+    <div class="period-selector">
+        <button class="period-btn" onclick="setPeriod('all')">Tudo</button>
+        <button class="period-btn active" onclick="setPeriod('year')">Este Ano</button>
+        <button class="period-btn" onclick="setPeriod('month')">Este Mês</button>
+        <button class="period-btn" onclick="setPeriod('last3')">Últimos 3 Meses</button>
+        <button class="period-btn" onclick="setPeriod('last6')">Últimos 6 Meses</button>
+    </div>
+
+    <!-- Resumo de Estatísticas -->
+    <div class="stats-grid" id="statsGrid"></div>
+
+    <!-- Sem Dados -->
+    <div id="noData" class="no-data" style="display: none;">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#8b92b5" stroke-width="2">
+            <path d="M3 3v18h18"></path>
+            <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"></path>
+        </svg>
+        <p>Nenhuma transação encontrada</p>
+        <p style="font-size: 0.9rem; margin-top: 0.5rem;">
+            Adicione transações na aplicação principal para ver suas estatísticas aqui.
+        </p>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="charts-grid" id="chartsGrid"></div>
+
+    <script>
+        // Estado
+        let transactions = [];
+        let period = 'year';
+        let charts = {};
+
+        // Carregar dados do localStorage
+        function loadData() {
+            try {
+                const data = localStorage.getItem('financialTransactions');
+                if (data) {
+                    transactions = JSON.parse(data);
+                    console.log(`Carregadas ${transactions.length} transações`);
+                    return true;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+            }
+            return false;
+        }
+
+        // Filtrar por período
+        function filterByPeriod(transactions) {
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth();
+
+            return transactions.filter(t => {
+                const date = new Date(t.date);
+                
+                switch(period) {
+                    case 'all':
+                        return true;
+                    case 'year':
+                        return date.getFullYear() === currentYear;
+                    case 'month':
+                        return date.getFullYear() === currentYear && date.getMonth() === currentMonth;
+                    case 'last3':
+                        const threeMonthsAgo = new Date(now);
+                        threeMonthsAgo.setMonth(now.getMonth() - 3);
+                        return date >= threeMonthsAgo;
+                    case 'last6':
+                        const sixMonthsAgo = new Date(now);
+                        sixMonthsAgo.setMonth(now.getMonth() - 6);
+                        return date >= sixMonthsAgo;
+                    default:
+                        return true;
+                }
+            });
+        }
+
+        // Definir período
+        function setPeriod(newPeriod) {
+            period = newPeriod;
+            
+            // Atualizar botões
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Atualizar dashboard
+            updateDashboard();
+        }
+
+        // Calcular estatísticas
+        function calculateStats(data) {
+            const income = data.filter(t => t.type === 'income');
+            const expenses = data.filter(t => t.type === 'expense');
+            
+            const totalIncome = income.reduce((sum, t) => sum + t.amount, 0);
+            const totalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
+            const balance = totalIncome - totalExpenses;
+            
+            const paidExpenses = expenses.filter(t => t.paid).reduce((sum, t) => sum + t.amount, 0);
+            const pendingExpenses = expenses.filter(t => !t.paid).reduce((sum, t) => sum + t.amount, 0);
+            
+            const paidRate = expenses.length > 0 
+                ? (expenses.filter(t => t.paid).length / expenses.length * 100).toFixed(1)
+                : 0;
+
+            // Média diária de gastos
+            const dates = [...new Set(expenses.map(t => t.date))];
+            const avgDaily = dates.length > 0 ? (totalExpenses / dates.length).toFixed(2) : 0;
+
+            return {
+                totalIncome,
+                totalExpenses,
+                balance,
+                paidExpenses,
+                pendingExpenses,
+                paidRate,
+                avgDaily,
+                transactionCount: data.length,
+                incomeCount: income.length,
+                expenseCount: expenses.length
+            };
+        }
+
+        // Renderizar estatísticas
+        function renderStats(stats) {
+            const statsGrid = document.getElementById('statsGrid');
+            
+            statsGrid.innerHTML = `
+                <div class="stat-card" style="background: linear-gradient(135deg, rgba(100, 255, 180, 0.1) 0%, rgba(60, 200, 140, 0.05) 100%); border-color: rgba(100, 255, 180, 0.2);">
+                    <div class="label">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64ffb4" stroke-width="2">
+                            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                            <polyline points="17 6 23 6 23 12"></polyline>
+                        </svg>
+                        Receitas
+                    </div>
+                    <div class="value" style="color: #64ffb4;">R$ ${stats.totalIncome.toFixed(2)}</div>
+                    <div class="subtitle">${stats.incomeCount} transação(ões)</div>
+                </div>
+
+                <div class="stat-card" style="background: linear-gradient(135deg, rgba(255, 100, 100, 0.1) 0%, rgba(200, 60, 60, 0.05) 100%); border-color: rgba(255, 100, 100, 0.2);">
+                    <div class="label">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff6464" stroke-width="2">
+                            <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline>
+                            <polyline points="17 18 23 18 23 12"></polyline>
+                        </svg>
+                        Despesas
+                    </div>
+                    <div class="value" style="color: #ff6464;">R$ ${stats.totalExpenses.toFixed(2)}</div>
+                    <div class="subtitle">${stats.expenseCount} transação(ões)</div>
+                </div>
+
+                <div class="stat-card" style="background: linear-gradient(135deg, ${stats.balance >= 0 ? 'rgba(100, 255, 180, 0.1) 0%, rgba(60, 200, 140, 0.05)' : 'rgba(255, 100, 100, 0.1) 0%, rgba(200, 60, 60, 0.05)'} 100%); border-color: ${stats.balance >= 0 ? 'rgba(100, 255, 180, 0.2)' : 'rgba(255, 100, 100, 0.2)'};">
+                    <div class="label">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${stats.balance >= 0 ? '#64ffb4' : '#ff6464'}" stroke-width="2">
+                            <line x1="12" y1="1" x2="12" y2="23"></line>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                        Saldo
+                    </div>
+                    <div class="value" style="color: ${stats.balance >= 0 ? '#64ffb4' : '#ff6464'};">R$ ${stats.balance.toFixed(2)}</div>
+                    <div class="subtitle">${stats.balance >= 0 ? 'Positivo' : 'Negativo'}</div>
+                </div>
+
+                <div class="stat-card" style="background: linear-gradient(135deg, rgba(100, 180, 255, 0.1) 0%, rgba(60, 140, 200, 0.05) 100%); border-color: rgba(100, 180, 255, 0.2);">
+                    <div class="label">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64b4ff" stroke-width="2">
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                        </svg>
+                        Média Diária
+                    </div>
+                    <div class="value" style="color: #64b4ff;">R$ ${stats.avgDaily}</div>
+                    <div class="subtitle">Gastos por dia</div>
+                </div>
+
+                <div class="stat-card" style="background: linear-gradient(135deg, rgba(255, 200, 100, 0.1) 0%, rgba(200, 150, 60, 0.05) 100%); border-color: rgba(255, 200, 100, 0.2);">
+                    <div class="label">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffc864" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                        Taxa de Pagamento
+                    </div>
+                    <div class="value" style="color: #ffc864;">${stats.paidRate}%</div>
+                    <div class="subtitle">${stats.expenseCount > 0 ? `${Math.round(stats.paidRate / 100 * stats.expenseCount)} de ${stats.expenseCount}` : 'Sem despesas'}</div>
+                </div>
+
+                <div class="stat-card" style="background: linear-gradient(135deg, rgba(180, 100, 255, 0.1) 0%, rgba(140, 60, 200, 0.05) 100%); border-color: rgba(180, 100, 255, 0.2);">
+                    <div class="label">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b464ff" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        Pendente
+                    </div>
+                    <div class="value" style="color: #b464ff;">R$ ${stats.pendingExpenses.toFixed(2)}</div>
+                    <div class="subtitle">A pagar</div>
+                </div>
+            `;
+        }
+
+        // Agrupar por categoria
+        function groupByCategory(transactions) {
+            const groups = {};
+            
+            transactions.filter(t => t.type === 'expense').forEach(t => {
+                const cat = t.category || 'Sem categoria';
+                if (!groups[cat]) {
+                    groups[cat] = 0;
+                }
+                groups[cat] += t.amount;
+            });
+            
+            return Object.entries(groups)
+                .sort((a, b) => b[1] - a[1])
+                .map(([name, amount]) => ({ name, amount }));
+        }
+
+        // Agrupar por mês
+        function groupByMonth(transactions) {
+            const months = {};
+            
+            transactions.forEach(t => {
+                const date = new Date(t.date);
+                const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                
+                if (!months[key]) {
+                    months[key] = { income: 0, expenses: 0 };
+                }
+                
+                if (t.type === 'income') {
+                    months[key].income += t.amount;
+                } else {
+                    months[key].expenses += t.amount;
+                }
+            });
+            
+            return Object.entries(months)
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .map(([month, data]) => ({
+                    month,
+                    ...data,
+                    balance: data.income - data.expenses
+                }));
+        }
+
+        // Cores para gráficos
+        const colors = [
+            '#64ffb4', '#ff6464', '#64b4ff', '#ffc864', '#b464ff',
+            '#ff64b4', '#64ffff', '#ffb464', '#b4ff64', '#ff64ff'
+        ];
+
+        // Criar gráfico de pizza - Gastos por Categoria
+        function createCategoryChart(data) {
+            const categories = groupByCategory(data);
+            
+            if (categories.length === 0) return null;
+
+            const ctx = document.createElement('canvas');
+            
+            return new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: categories.map(c => c.name),
+                    datasets: [{
+                        data: categories.map(c => c.amount),
+                        backgroundColor: colors,
+                        borderColor: '#1a1f3a',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: '#e8e9f3',
+                                padding: 15,
+                                font: {
+                                    family: 'Space Grotesk',
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(30, 35, 60, 0.95)',
+                            titleColor: '#64ffb4',
+                            bodyColor: '#e8e9f3',
+                            borderColor: '#64ffb4',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.raw / total) * 100).toFixed(1);
+                                    return `${context.label}: R$ ${context.raw.toFixed(2)} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Criar gráfico de barras - Receitas vs Despesas por Mês
+        function createMonthlyChart(data) {
+            const monthly = groupByMonth(data);
+            
+            if (monthly.length === 0) return null;
+
+            const ctx = document.createElement('canvas');
+            
+            return new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: monthly.map(m => {
+                        const [year, month] = m.month.split('-');
+                        const date = new Date(year, parseInt(month) - 1);
+                        return date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+                    }),
+                    datasets: [
+                        {
+                            label: 'Receitas',
+                            data: monthly.map(m => m.income),
+                            backgroundColor: 'rgba(100, 255, 180, 0.8)',
+                            borderColor: '#64ffb4',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Despesas',
+                            data: monthly.map(m => m.expenses),
+                            backgroundColor: 'rgba(255, 100, 100, 0.8)',
+                            borderColor: '#ff6464',
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#e8e9f3',
+                                font: {
+                                    family: 'Space Grotesk',
+                                    size: 13
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(30, 35, 60, 0.95)',
+                            titleColor: '#64ffb4',
+                            bodyColor: '#e8e9f3',
+                            borderColor: '#64ffb4',
+                            borderWidth: 1,
+                            padding: 12,
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: R$ ${context.raw.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#8b92b5',
+                                font: {
+                                    family: 'Space Grotesk'
+                                },
+                                callback: function(value) {
+                                    return 'R$ ' + value.toFixed(0);
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(139, 146, 181, 0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#8b92b5',
+                                font: {
+                                    family: 'Space Grotesk'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(139, 146, 181, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Criar gráfico de linha - Evolução do Saldo
+        function createBalanceChart(data) {
+            const monthly = groupByMonth(data);
+            
+            if (monthly.length === 0) return null;
+
+            const ctx = document.createElement('canvas');
+            
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: monthly.map(m => {
+                        const [year, month] = m.month.split('-');
+                        const date = new Date(year, parseInt(month) - 1);
+                        return date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+                    }),
+                    datasets: [{
+                        label: 'Saldo',
+                        data: monthly.map(m => m.balance),
+                        borderColor: '#64ffb4',
+                        backgroundColor: 'rgba(100, 255, 180, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: '#64ffb4',
+                        pointBorderColor: '#1a1f3a',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#e8e9f3',
+                                font: {
+                                    family: 'Space Grotesk',
+                                    size: 13
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(30, 35, 60, 0.95)',
+                            titleColor: '#64ffb4',
+                            bodyColor: '#e8e9f3',
+                            borderColor: '#64ffb4',
+                            borderWidth: 1,
+                            padding: 12,
+                            callbacks: {
+                                label: function(context) {
+                                    return `Saldo: R$ ${context.raw.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                color: '#8b92b5',
+                                font: {
+                                    family: 'Space Grotesk'
+                                },
+                                callback: function(value) {
+                                    return 'R$ ' + value.toFixed(0);
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(139, 146, 181, 0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#8b92b5',
+                                font: {
+                                    family: 'Space Grotesk'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(139, 146, 181, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Criar lista de top categorias
+        function createTopCategoriesList(data) {
+            const categories = groupByCategory(data).slice(0, 10);
+            
+            if (categories.length === 0) return null;
+
+            const list = document.createElement('ul');
+            list.className = 'category-list';
+            
+            categories.forEach((cat, index) => {
+                const item = document.createElement('li');
+                item.className = 'category-item';
+                item.innerHTML = `
+                    <div class="category-name">
+                        <span class="category-color" style="background: ${colors[index % colors.length]};"></span>
+                        <span>${cat.name}</span>
+                    </div>
+                    <span class="category-amount">R$ ${cat.amount.toFixed(2)}</span>
+                `;
+                list.appendChild(item);
+            });
+            
+            return list;
+        }
+
+        // Renderizar gráficos
+        function renderCharts(data) {
+            const chartsGrid = document.getElementById('chartsGrid');
+            chartsGrid.innerHTML = '';
+
+            // Destruir gráficos antigos
+            Object.values(charts).forEach(chart => {
+                if (chart && chart.destroy) {
+                    chart.destroy();
+                }
+            });
+            charts = {};
+
+            // Gráfico de categoria (pizza)
+            const categoryCard = document.createElement('div');
+            categoryCard.className = 'chart-card';
+            categoryCard.innerHTML = '<h3>💰 Gastos por Categoria</h3><div class="chart-container"></div>';
+            const categoryChart = createCategoryChart(data);
+            if (categoryChart) {
+                categoryCard.querySelector('.chart-container').appendChild(categoryChart.canvas);
+                charts.category = categoryChart;
+            }
+            chartsGrid.appendChild(categoryCard);
+
+            // Gráfico mensal (barras)
+            const monthlyCard = document.createElement('div');
+            monthlyCard.className = 'chart-card';
+            monthlyCard.innerHTML = '<h3>📊 Receitas vs Despesas</h3><div class="chart-container"></div>';
+            const monthlyChart = createMonthlyChart(data);
+            if (monthlyChart) {
+                monthlyCard.querySelector('.chart-container').appendChild(monthlyChart.canvas);
+                charts.monthly = monthlyChart;
+            }
+            chartsGrid.appendChild(monthlyCard);
+
+            // Gráfico de saldo (linha)
+            const balanceCard = document.createElement('div');
+            balanceCard.className = 'chart-card';
+            balanceCard.innerHTML = '<h3>📈 Evolução do Saldo</h3><div class="chart-container"></div>';
+            const balanceChart = createBalanceChart(data);
+            if (balanceChart) {
+                balanceCard.querySelector('.chart-container').appendChild(balanceChart.canvas);
+                charts.balance = balanceChart;
+            }
+            chartsGrid.appendChild(balanceCard);
+
+            // Top categorias (lista)
+            const topCard = document.createElement('div');
+            topCard.className = 'chart-card';
+            topCard.innerHTML = '<h3>🏆 Top 10 Categorias</h3><div class="chart-container tall" style="height: auto; overflow-y: auto;"></div>';
+            const topList = createTopCategoriesList(data);
+            if (topList) {
+                topCard.querySelector('.chart-container').appendChild(topList);
+            }
+            chartsGrid.appendChild(topCard);
+        }
+
+        // Atualizar dashboard
+        function updateDashboard() {
+            const filtered = filterByPeriod(transactions);
+            
+            if (filtered.length === 0) {
+                document.getElementById('noData').style.display = 'block';
+                document.getElementById('statsGrid').style.display = 'none';
+                document.getElementById('chartsGrid').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('noData').style.display = 'none';
+            document.getElementById('statsGrid').style.display = 'grid';
+            document.getElementById('chartsGrid').style.display = 'grid';
+
+            const stats = calculateStats(filtered);
+            renderStats(stats);
+            renderCharts(filtered);
+        }
+
+        // Inicializar
+        function init() {
+            if (loadData()) {
+                updateDashboard();
+            } else {
+                document.getElementById('noData').style.display = 'block';
+                document.getElementById('statsGrid').style.display = 'none';
+                document.getElementById('chartsGrid').style.display = 'none';
+            }
+        }
+
+        // Iniciar ao carregar
+        init();
+    </script>
+</body>
+</html>
