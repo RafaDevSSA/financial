@@ -1,0 +1,1494 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão Financeira - Firebase</title>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            font-family: 'Space Grotesk', system-ui, sans-serif;
+            color: #e8e9f3;
+            padding: 2rem;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .header {
+            margin-bottom: 2rem;
+            animation: slideIn 0.5s ease;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #64ffb4 0%, #3cc88c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #8b92b5;
+            font-size: 1.1rem;
+        }
+
+        .card {
+            background: rgba(30, 35, 60, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(100, 255, 180, 0.1);
+            border-radius: 16px;
+            padding: 1.5rem;
+            animation: slideIn 0.5s ease-out;
+            margin-bottom: 2rem;
+        }
+
+        .card:hover {
+            border-color: rgba(100, 255, 180, 0.3);
+            transform: translateY(-2px);
+            transition: all 0.3s ease;
+        }
+
+        .card h3 {
+            color: #64ffb4;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-grid {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #8b92b5;
+            font-size: 0.9rem;
+        }
+
+        input, select {
+            background: rgba(20, 25, 45, 0.8);
+            border: 1px solid rgba(100, 255, 180, 0.2);
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: #e8e9f3;
+            width: 100%;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1rem;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #64ffb4;
+            box-shadow: 0 0 0 3px rgba(100, 255, 180, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #64ffb4 0%, #3cc88c 100%);
+            color: #0a0e27;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(100, 255, 180, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .month-selector {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(30, 35, 60, 0.5);
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+
+        .month-selector button {
+            background: none;
+            border: none;
+            color: #64ffb4;
+            cursor: pointer;
+            padding: 0.5rem;
+            font-size: 1.5rem;
+        }
+
+        .month-selector h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #64ffb4;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(100, 255, 180, 0.1) 0%, rgba(60, 200, 140, 0.05) 100%);
+            border: 1px solid rgba(100, 255, 180, 0.2);
+            border-radius: 12px;
+            padding: 1.5rem;
+            animation: slideIn 0.6s ease-out;
+        }
+
+        .stat-card .label {
+            color: #8b92b5;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stat-card .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .tabs {
+            border-bottom: 1px solid rgba(100, 255, 180, 0.1);
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+        }
+
+        .tab {
+            padding: 0.75rem 1.5rem;
+            background: transparent;
+            border: none;
+            color: #8b92b5;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-size: 1rem;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .tab.active {
+            color: #64ffb4;
+            border-bottom-color: #64ffb4;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-header h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .transaction-row {
+            padding: 1rem;
+            background: rgba(20, 25, 45, 0.5);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            border-left: 3px solid transparent;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .transaction-row:hover {
+            background: rgba(30, 35, 60, 0.7);
+            border-left-color: #64ffb4;
+        }
+
+        .transaction-info h4 {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .transaction-info .meta {
+            font-size: 0.85rem;
+            color: #8b92b5;
+        }
+
+        .transaction-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .transaction-amount {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .btn-paid {
+            background: #64ffb4;
+            color: #0a0e27;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .btn-pending {
+            background: rgba(100, 255, 180, 0.1);
+            color: #64ffb4;
+            border: 1px solid #64ffb4;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .calendar-header {
+            text-align: center;
+            font-weight: 600;
+            color: #64ffb4;
+            padding: 0.5rem;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            padding: 0.5rem;
+            border-radius: 8px;
+            background: rgba(20, 25, 45, 0.5);
+            border: 1px solid rgba(100, 255, 180, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            font-size: 0.9rem;
+        }
+
+        .calendar-day:hover {
+            background: rgba(30, 35, 60, 0.8);
+            border-color: rgba(100, 255, 180, 0.3);
+            transform: scale(1.05);
+        }
+
+        .calendar-day.has-transactions {
+            border-color: #64ffb4;
+            box-shadow: 0 0 10px rgba(100, 255, 180, 0.2);
+        }
+
+        .calendar-day.empty {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .calendar-day .day-number {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .calendar-badge {
+            font-size: 0.7rem;
+            border-radius: 4px;
+            padding: 0.125rem 0.25rem;
+            margin-bottom: 0.125rem;
+            text-align: center;
+        }
+
+        .badge-pending {
+            background: #ff6464;
+            color: #fff;
+        }
+
+        .badge-paid {
+            background: #64ffb4;
+            color: #0a0e27;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1f3a 0%, #0a0e27 100%);
+            border: 1px solid rgba(100, 255, 180, 0.2);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            animation: slideIn 0.3s ease;
+        }
+
+        .modal-header {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: #64ffb4;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn-cancel {
+            flex: 1;
+            padding: 0.75rem;
+            background: rgba(255, 100, 100, 0.1);
+            border: 1px solid rgba(255, 100, 100, 0.3);
+            border-radius: 8px;
+            color: #ff6464;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+
+        .checkbox-group label {
+            color: #8b92b5;
+            margin: 0;
+        }
+
+        .info-text {
+            font-size: 0.85rem;
+            color: #8b92b5;
+            margin-top: 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .transaction-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .transaction-actions {
+                width: 100%;
+                flex-wrap: wrap;
+                gap: 0.5rem !important;
+            }
+
+            .transaction-actions button {
+                flex: 1 1 auto;
+                min-width: 80px;
+                justify-content: center;
+            }
+
+            .transaction-amount {
+                width: 100%;
+                text-align: left;
+                margin-bottom: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>🔥 Gestão Financeira</h1>
+        <p>Controle completo com sincronização em nuvem</p>
+    </div>
+
+    <!-- Conexão Firebase -->
+    <div id="firebaseCard" class="card">
+        <h3>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                <path d="M2 17l10 5 10-5M2 12l10 5 10-5"></path>
+            </svg>
+            🔥 Sincronização Firebase
+        </h3>
+        <p style="color: #8b92b5; font-size: 0.9rem; margin-bottom: 1rem;">
+            Sincronização em tempo real entre dispositivos
+        </p>
+
+        <div id="firebaseConfigSection">
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label>API Key</label>
+                <input type="password" id="firebaseApiKey" placeholder="Sua API Key do Firebase">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label>Auth Domain</label>
+                <input type="text" id="firebaseAuthDomain" placeholder="seu-projeto.firebaseapp.com">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label>Project ID</label>
+                <input type="text" id="firebaseProjectId" placeholder="seu-projeto-id">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label>Email (opcional)</label>
+                <input type="email" id="firebaseEmail" placeholder="seu@email.com">
+                <small style="color: #8b92b5; font-size: 0.8rem; margin-top: 0.25rem; display: block;">
+                    Para autenticação. Deixe em branco para modo anônimo.
+                </small>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label>Senha (opcional)</label>
+                <input type="password" id="firebasePassword" placeholder="••••••••">
+            </div>
+
+            <button class="btn-primary" id="connectFirebaseBtn" style="width: 100%;">
+                Conectar Firebase
+            </button>
+
+            <details style="margin-top: 1rem; color: #8b92b5; font-size: 0.85rem;">
+                <summary style="cursor: pointer; color: #64ffb4; margin-bottom: 0.5rem;">🔧 Como Configurar</summary>
+                <div style="background: rgba(20, 25, 45, 0.5); padding: 1rem; border-radius: 8px; margin-top: 0.5rem;">
+                    <ol style="padding-left: 1.5rem; line-height: 1.8;">
+                        <li>Acesse <strong>console.firebase.google.com</strong></li>
+                        <li>Crie um projeto Firebase</li>
+                        <li>Ative <strong>Firestore Database</strong></li>
+                        <li>Ative <strong>Authentication</strong> (Email ou Anônimo)</li>
+                        <li>Copie as credenciais em Configurações</li>
+                        <li>Cole aqui e clique em "Conectar"</li>
+                    </ol>
+                </div>
+            </details>
+        </div>
+
+        <div id="firebaseConnectedSection" style="display: none;">
+            <div style="background: linear-gradient(135deg, rgba(100, 255, 180, 0.1) 0%, rgba(60, 200, 140, 0.05) 100%); border: 1px solid rgba(100, 255, 180, 0.2); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64ffb4" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <strong style="color: #64ffb4;">Conectado ao Firebase</strong>
+                </div>
+                <p style="font-size: 0.85rem; color: #8b92b5;">
+                    Sincronização automática ativa em tempo real ☁️
+                </p>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem;">
+                <button onclick="syncNowFirebase()" class="btn-primary" style="flex: 1;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 0.5rem;">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                    </svg>
+                    Sincronizar
+                </button>
+                <button onclick="disconnectFirebase()" style="flex: 1; background: rgba(255, 100, 100, 0.1); color: #ff6464; border: 1px solid #ff6464; padding: 0.75rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Space Grotesk', sans-serif;">
+                    Desconectar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conexão Google Sheets -->
+    <!--div id="googleSheetsCard" class="card">
+        <h3>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+            Conectar com Google Sheets
+        </h3>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>ID da Planilha</label>
+                <input type="text" id="sheetId" placeholder="ID da sua planilha do Google Sheets">
+                <small style="color: #8b92b5; font-size: 0.8rem; margin-top: 0.25rem; display: block;">
+                    Extraia da URL: docs.google.com/spreadsheets/d/<strong>ID_AQUI</strong>/edit
+                </small>
+            </div>
+            <div class="form-group">
+                <label>API Key</label>
+                <input type="password" id="apiKey" placeholder="Sua chave da API do Google">
+                <small style="color: #8b92b5; font-size: 0.8rem; margin-top: 0.25rem; display: block;">
+                    Obtenha em: console.cloud.google.com
+                </small>
+            </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-top: 1rem;">
+            <button class="btn-primary" id="connectBtn">
+                Conectar Planilha
+            </button>
+            <button onclick="testConnection()" style="background: rgba(100, 255, 180, 0.1); color: #64ffb4; border: 1px solid #64ffb4; padding: 0.75rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Space Grotesk', sans-serif;">
+                Testar
+            </button>
+        </div>
+        <p class="info-text">
+            💡 Modo local ativo. Seus dados são salvos no navegador.<br>
+            ⚠️ <strong>Limitação da API Key:</strong> Permite apenas LEITURA do Google Sheets.<br>
+            📝 Para salvar no Sheets: Use o botão "Copiar para Sheets" e cole na planilha (Ctrl+V).
+        </p>
+        
+        <details style="margin-top: 1rem; color: #8b92b5; font-size: 0.85rem;">
+            <summary style="cursor: pointer; color: #64ffb4; margin-bottom: 0.5rem;">📋 Estrutura da Planilha</summary>
+            <div style="background: rgba(20, 25, 45, 0.5); padding: 1rem; border-radius: 8px; margin-top: 0.5rem;">
+                <p style="margin-bottom: 0.5rem;"><strong>Nome da aba:</strong> "Transações" ou "Sheet1"</p>
+                <p style="margin-bottom: 0.5rem;"><strong>Linha 1 (cabeçalho):</strong></p>
+                <code style="display: block; background: rgba(0, 0, 0, 0.3); padding: 0.5rem; border-radius: 4px; margin-bottom: 0.5rem;">
+                    type | description | amount | date | paid | category
+                </code>
+                <p style="margin-bottom: 0.5rem;"><strong>Exemplo de dados (linha 2+):</strong></p>
+                <code style="display: block; background: rgba(0, 0, 0, 0.3); padding: 0.5rem; border-radius: 4px;">
+                    expense | Aluguel | 1500 | 2025-01-10 | TRUE | Moradia
+                </code>
+            </div>
+        </details>
+    </div-->
+
+    <!-- Status de Sincronização -->
+    <div id="syncStatus" style="display: none; position: fixed; bottom: 2rem; right: 2rem; background: rgba(30, 35, 60, 0.95); border: 1px solid rgba(100, 255, 180, 0.3); border-radius: 12px; padding: 1rem; z-index: 999; backdrop-filter: blur(10px); animation: slideIn 0.3s ease;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div id="syncSpinner" style="width: 20px; height: 20px; border: 2px solid rgba(100, 255, 180, 0.3); border-top-color: #64ffb4; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+            <span id="syncText" style="color: #64ffb4; font-weight: 600;">Sincronizando...</span>
+        </div>
+    </div>
+
+    <!-- Seletor de Mês -->
+    <div class="month-selector">
+        <button id="prevMonth">‹</button>
+        <h2 id="currentMonth">Janeiro 2025</h2>
+        <button id="nextMonth">›</button>
+    </div>
+
+    <!-- Resumo Financeiro -->
+    <div class="stats-grid" id="statsGrid"></div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab active" data-tab="dashboard">Dashboard</button>
+        <button class="tab" data-tab="transactions">Transações</button>
+        <button class="tab" data-tab="calendar">Calendário</button>
+    </div>
+
+    <!-- Dashboard Tab -->
+    <div id="dashboard" class="tab-content active">
+        <div class="section-header">
+            <h3>Transações Recentes</h3>
+            <button class="btn-primary" id="addTransactionBtn">
+                + Nova Transação
+            </button>
+        </div>
+        <div id="recentTransactions"></div>
+    </div>
+
+    <!-- Transactions Tab -->
+    <div id="transactions" class="tab-content">
+        <div class="section-header">
+            <h3>Todas as Transações</h3>
+            <button class="btn-primary" id="addTransactionBtn2">
+                + Nova Transação
+            </button>
+        </div>
+        <div id="allTransactions"></div>
+    </div>
+
+    <!-- Calendar Tab -->
+    <div id="calendar" class="tab-content">
+        <h3 style="margin-bottom: 1.5rem;">Calendário de Vencimentos</h3>
+        <div class="calendar-grid">
+            <div class="calendar-header">Dom</div>
+            <div class="calendar-header">Seg</div>
+            <div class="calendar-header">Ter</div>
+            <div class="calendar-header">Qua</div>
+            <div class="calendar-header">Qui</div>
+            <div class="calendar-header">Sex</div>
+            <div class="calendar-header">Sáb</div>
+        </div>
+        <div class="calendar-grid" id="calendarDays"></div>
+
+        <div style="margin-top: 2rem;">
+            <h4 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; color: #64ffb4;">
+                Vencimentos do Mês
+            </h4>
+            <div id="pendingPayments"></div>
+        </div>
+    </div>
+
+    <!-- Modal Nova Transação -->
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-header" id="modalTitle">Nova Transação</h3>
+            <form id="transactionForm">
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label>Tipo</label>
+                    <select id="transactionType" required>
+                        <option value="expense">Despesa</option>
+                        <option value="income">Receita</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label>Descrição</label>
+                    <input type="text" id="transactionDescription" placeholder="Ex: Aluguel, Salário..." required minlength="3">
+                </div>
+
+                <div class="form-grid" style="margin-bottom: 1rem;">
+                    <div class="form-group">
+                        <label>Valor</label>
+                        <input type="number" step="0.01" min="0.01" max="1000000" id="transactionAmount" placeholder="0.00" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Data</label>
+                        <input type="date" id="transactionDate" required>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label>Categoria</label>
+                    <input type="text" id="transactionCategory" placeholder="Ex: Moradia, Alimentação..." required minlength="2">
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="transactionPaid">
+                    <label>Já foi pago</label>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" id="cancelBtn">Cancelar</button>
+                    <button type="submit" class="btn-primary" id="submitBtn" style="flex: 1;">Adicionar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Estado da aplicação
+        const state = {
+            selectedMonth: new Date().getMonth(),
+            selectedYear: new Date().getFullYear(),
+            transactions: [],
+            activeTab: 'dashboard',
+            editingId: null,  // firebaseId da transação em edição
+            firebaseConnected: false,
+            firebaseApp: null,
+            firebaseAuth: null,
+            firebaseDb: null,
+            firebaseUserId: null,
+            firebaseUnsubscribe: null
+        };
+
+        const months = [
+            'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+            'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+        ];
+
+        // ========== FIREBASE ==========
+        
+        // Conectar ao Firebase
+        // ========== FIREBASE ==========
+
+        // Referência à coleção de transações do usuário atual
+        function getCollection() {
+            return state.firebaseDb
+                .collection('users')
+                .doc(state.firebaseUserId)
+                .collection('transactions');
+        }
+
+        // Conectar ao Firebase
+        async function connectFirebase() {
+            const apiKey = document.getElementById('firebaseApiKey').value.trim();
+            const authDomain = document.getElementById('firebaseAuthDomain').value.trim();
+            const projectId = document.getElementById('firebaseProjectId').value.trim();
+            const email = document.getElementById('firebaseEmail').value.trim();
+            const password = document.getElementById('firebasePassword').value.trim();
+
+            if (!apiKey || !authDomain || !projectId) {
+                alert('Por favor, preencha API Key, Auth Domain e Project ID');
+                return;
+            }
+
+            const btn = document.getElementById('connectFirebaseBtn');
+            btn.textContent = 'Conectando...';
+            btn.disabled = true;
+
+            try {
+                if (state.firebaseApp) {
+                    await state.firebaseApp.delete();
+                }
+
+                state.firebaseApp = firebase.initializeApp(
+                    { apiKey, authDomain, projectId },
+                    'financialApp'
+                );
+                state.firebaseAuth = state.firebaseApp.auth();
+                state.firebaseDb = state.firebaseApp.firestore();
+
+                if (email && password) {
+                    try {
+                        const cred = await state.firebaseAuth.signInWithEmailAndPassword(email, password);
+                        state.firebaseUserId = cred.user.uid;
+                    } catch (error) {
+                        if (error.code === 'auth/user-not-found') {
+                            const cred = await state.firebaseAuth.createUserWithEmailAndPassword(email, password);
+                            state.firebaseUserId = cred.user.uid;
+                        } else {
+                            throw error;
+                        }
+                    }
+                } else {
+                    const cred = await state.firebaseAuth.signInAnonymously();
+                    state.firebaseUserId = cred.user.uid;
+                }
+
+                // Persiste somente a config de conexão (nunca dados de transações)
+                localStorage.setItem('firebaseConfig', JSON.stringify({ apiKey, authDomain, projectId, email }));
+
+                state.firebaseConnected = true;
+                document.getElementById('firebaseConfigSection').style.display = 'none';
+                document.getElementById('firebaseConnectedSection').style.display = 'block';
+
+                setupFirebaseSync();
+
+            } catch (error) {
+                console.error('Erro ao conectar Firebase:', error);
+                alert('Erro ao conectar: ' + error.message);
+            } finally {
+                btn.textContent = 'Conectar Firebase';
+                btn.disabled = false;
+            }
+        }
+
+        // Configura o listener em tempo real — Firestore é a única fonte de verdade
+        function setupFirebaseSync() {
+            if (!state.firebaseDb || !state.firebaseUserId) return;
+
+            // Cancela listener anterior se existir
+            if (state.firebaseUnsubscribe) {
+                state.firebaseUnsubscribe();
+            }
+
+            showSyncStatus('Carregando dados...', 'loading');
+
+            state.firebaseUnsubscribe = getCollection()
+                .orderBy('date', 'desc')
+                .onSnapshot(
+                    (snapshot) => {
+                        state.transactions = snapshot.docs.map(doc => ({
+                            firebaseId: doc.id,
+                            ...doc.data()
+                        }));
+                        updateUI();
+                        showSuccessMessage('Sincronizado!');
+                    },
+                    (error) => {
+                        console.error('Erro no listener Firestore:', error);
+                        showErrorMessage('Erro na sincronização');
+                    }
+                );
+        }
+
+        // Sincronizar agora (recarrega do Firestore manualmente)
+        async function syncNowFirebase() {
+            if (!state.firebaseConnected) return;
+            showSyncStatus('Sincronizando...', 'loading');
+            try {
+                const snapshot = await getCollection().orderBy('date', 'desc').get();
+                state.transactions = snapshot.docs.map(doc => ({
+                    firebaseId: doc.id,
+                    ...doc.data()
+                }));
+                updateUI();
+                showSuccessMessage('Sincronizado!');
+            } catch (error) {
+                console.error('Erro ao sincronizar:', error);
+                showErrorMessage('Erro ao sincronizar');
+            }
+        }
+
+        // Desconectar Firebase
+        async function disconnectFirebase() {
+            if (!confirm('Desconectar do Firebase? Os dados permanecem na nuvem.')) return;
+
+            try {
+                if (state.firebaseUnsubscribe) {
+                    state.firebaseUnsubscribe();
+                    state.firebaseUnsubscribe = null;
+                }
+
+                if (state.firebaseAuth) await state.firebaseAuth.signOut();
+                if (state.firebaseApp) await state.firebaseApp.delete();
+
+                state.firebaseConnected = false;
+                state.firebaseApp = null;
+                state.firebaseAuth = null;
+                state.firebaseDb = null;
+                state.firebaseUserId = null;
+                state.transactions = [];
+
+                localStorage.removeItem('firebaseConfig');
+
+                document.getElementById('firebaseConfigSection').style.display = 'block';
+                document.getElementById('firebaseConnectedSection').style.display = 'none';
+
+                updateUI();
+                showSuccessMessage('Desconectado do Firebase');
+
+            } catch (error) {
+                console.error('Erro ao desconectar:', error);
+                alert('Erro ao desconectar: ' + error.message);
+            }
+        }
+
+        // Reconectar automaticamente com config salva
+        async function autoConnectFirebase() {
+            const saved = localStorage.getItem('firebaseConfig');
+            if (!saved) return;
+
+            try {
+                const config = JSON.parse(saved);
+                document.getElementById('firebaseApiKey').value = config.apiKey || '';
+                document.getElementById('firebaseAuthDomain').value = config.authDomain || '';
+                document.getElementById('firebaseProjectId').value = config.projectId || '';
+                document.getElementById('firebaseEmail').value = config.email || '';
+
+                await connectFirebase();
+            } catch (error) {
+                console.error('Erro ao reconectar Firebase:', error);
+            }
+        }
+
+        // ========== FIM FIREBASE ==========
+
+        // Validação de datas
+        function validateDate(dateString) {
+            if (!dateString) return { valid: false, message: 'Data é obrigatória' };
+            
+            const date = new Date(dateString + 'T00:00:00');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (isNaN(date.getTime())) {
+                return { valid: false, message: 'Data inválida' };
+            }
+            
+            const tenYearsAgo = new Date(today);
+            tenYearsAgo.setFullYear(today.getFullYear() - 10);
+            
+            if (date < tenYearsAgo) {
+                return { valid: false, message: 'Data não pode ser mais de 10 anos no passado' };
+            }
+            
+            const twoYearsAhead = new Date(today);
+            twoYearsAhead.setFullYear(today.getFullYear() + 2);
+            
+            if (date > twoYearsAhead) {
+                return { valid: false, message: 'Data não pode ser mais de 2 anos no futuro' };
+            }
+            
+            return { valid: true };
+        }
+
+        // Validar valor monetário
+        function validateAmount(amount) {
+            const numAmount = parseFloat(amount);
+            
+            if (isNaN(numAmount)) {
+                return { valid: false, message: 'Valor inválido' };
+            }
+            
+            if (numAmount <= 0) {
+                return { valid: false, message: 'Valor deve ser maior que zero' };
+            }
+            
+            if (numAmount > 1000000) {
+                return { valid: false, message: 'Valor muito alto (máximo: R$ 1.000.000)' };
+            }
+            
+            return { valid: true };
+        }
+
+        // Funções de feedback visual
+        function showSyncStatus(message, type = 'loading') {
+            const status = document.getElementById('syncStatus');
+            const text = document.getElementById('syncText');
+            const spinner = document.getElementById('syncSpinner');
+            
+            if (type === 'loading') {
+                spinner.style.display = 'block';
+                text.style.color = '#64ffb4';
+            } else if (type === 'success') {
+                spinner.style.display = 'none';
+                text.style.color = '#64ffb4';
+            } else if (type === 'error') {
+                spinner.style.display = 'none';
+                text.style.color = '#ff6464';
+            }
+            
+            text.textContent = message;
+            status.style.display = 'block';
+        }
+
+        function hideSyncStatus() {
+            const status = document.getElementById('syncStatus');
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 3000);
+        }
+
+        function showSuccessMessage(message) {
+            showSyncStatus('✓ ' + message, 'success');
+            hideSyncStatus();
+        }
+
+        function showErrorMessage(message) {
+            showSyncStatus('✗ ' + message, 'error');
+            hideSyncStatus();
+        }
+
+        // Modal
+        function openModal() {
+            if (!state.firebaseConnected) {
+                alert('Conecte ao Firebase primeiro para adicionar transações.');
+                return;
+            }
+            state.editingId = null;
+            document.getElementById('modalTitle').textContent = 'Nova Transação';
+            document.getElementById('submitBtn').textContent = 'Adicionar';
+            document.getElementById('addModal').classList.add('active');
+        }
+
+        function openEditModal(firebaseId) {
+            const transaction = state.transactions.find(t => t.firebaseId === firebaseId);
+            if (!transaction) return;
+
+            state.editingId = firebaseId;
+            
+            document.getElementById('transactionType').value = transaction.type;
+            document.getElementById('transactionDescription').value = transaction.description;
+            document.getElementById('transactionAmount').value = transaction.amount;
+            document.getElementById('transactionDate').value = transaction.date;
+            document.getElementById('transactionCategory').value = transaction.category;
+            document.getElementById('transactionPaid').checked = transaction.paid;
+            
+            document.getElementById('modalTitle').textContent = 'Editar Transação';
+            document.getElementById('submitBtn').textContent = 'Salvar';
+            
+            document.getElementById('addModal').classList.add('active');
+        }
+
+        function closeModal() {
+            state.editingId = null;
+            document.getElementById('addModal').classList.remove('active');
+            document.getElementById('transactionForm').reset();
+            document.getElementById('transactionDate').valueAsDate = new Date();
+            document.getElementById('modalTitle').textContent = 'Nova Transação';
+            document.getElementById('submitBtn').textContent = 'Adicionar';
+        }
+
+        // Adicionar ou editar transação — Firestore é a fonte de verdade
+        async function handleAddTransaction(e) {
+            e.preventDefault();
+
+            if (!state.firebaseConnected) {
+                alert('Conecte ao Firebase primeiro!');
+                return;
+            }
+
+            const description = document.getElementById('transactionDescription').value.trim();
+            const amount = document.getElementById('transactionAmount').value;
+            const date = document.getElementById('transactionDate').value;
+            const category = document.getElementById('transactionCategory').value.trim();
+
+            if (!description || description.length < 3) {
+                alert('Descrição deve ter pelo menos 3 caracteres');
+                return;
+            }
+
+            const amountValidation = validateAmount(amount);
+            if (!amountValidation.valid) {
+                alert(amountValidation.message);
+                return;
+            }
+
+            const dateValidation = validateDate(date);
+            if (!dateValidation.valid) {
+                alert(dateValidation.message);
+                return;
+            }
+
+            if (!category || category.length < 2) {
+                alert('Categoria deve ter pelo menos 2 caracteres');
+                return;
+            }
+
+            const data = {
+                type: document.getElementById('transactionType').value,
+                description,
+                amount: parseFloat(amount),
+                date,
+                category,
+                paid: document.getElementById('transactionPaid').checked,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+
+            try {
+                if (state.editingId) {
+                    await getCollection().doc(state.editingId).update(data);
+                    showSuccessMessage('Transação atualizada!');
+                } else {
+                    data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    await getCollection().add(data);
+                    showSuccessMessage('Transação salva!');
+                }
+                closeModal();
+                // updateUI() será chamado automaticamente pelo onSnapshot
+            } catch (error) {
+                console.error('Erro ao salvar transação:', error);
+                showErrorMessage('Erro ao salvar: ' + error.message);
+            } finally {
+                submitBtn.disabled = false;
+            }
+        }
+
+        // Deletar transação
+        async function deleteTransaction(firebaseId) {
+            if (!confirm('Deseja realmente excluir esta transação?')) return;
+
+            try {
+                await getCollection().doc(firebaseId).delete();
+                showSuccessMessage('Transação excluída!');
+                // updateUI() será chamado automaticamente pelo onSnapshot
+            } catch (error) {
+                console.error('Erro ao excluir:', error);
+                showErrorMessage('Erro ao excluir: ' + error.message);
+            }
+        }
+
+        // Clonar transação para o próximo mês
+        async function cloneToNextMonth(firebaseId) {
+            const transaction = state.transactions.find(t => t.firebaseId === firebaseId);
+            if (!transaction) return;
+
+            const currentDate = new Date(transaction.date);
+            const nextMonthDate = new Date(currentDate);
+            nextMonthDate.setMonth(nextMonthDate.getMonth() + 1);
+
+            if (currentDate.getDate() !== nextMonthDate.getDate()) {
+                nextMonthDate.setDate(0);
+            }
+
+            const newDateStr = nextMonthDate.toISOString().split('T')[0];
+
+            const dateValidation = validateDate(newDateStr);
+            if (!dateValidation.valid) {
+                alert('Não foi possível clonar: ' + dateValidation.message);
+                return;
+            }
+
+            try {
+                await getCollection().add({
+                    type: transaction.type,
+                    description: transaction.description,
+                    amount: transaction.amount,
+                    date: newDateStr,
+                    category: transaction.category,
+                    paid: false,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                const monthName = nextMonthDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+                showSuccessMessage(`Clonado para ${monthName}!`);
+            } catch (error) {
+                console.error('Erro ao clonar:', error);
+                showErrorMessage('Erro ao clonar: ' + error.message);
+            }
+        }
+
+        // Alternar status pago/pendente
+        async function togglePaid(firebaseId) {
+            const transaction = state.transactions.find(t => t.firebaseId === firebaseId);
+            if (!transaction) return;
+
+            try {
+                await getCollection().doc(firebaseId).update({
+                    paid: !transaction.paid,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                showSuccessMessage('Status atualizado!');
+            } catch (error) {
+                console.error('Erro ao atualizar status:', error);
+                showErrorMessage('Erro ao atualizar: ' + error.message);
+            }
+        }
+
+        // Filtrar transações do mês
+        function getFilteredTransactions() {
+            return state.transactions.filter(t => {
+                const transDate = new Date(t.date + 'T00:00:00');
+                return transDate.getMonth() === state.selectedMonth &&
+                    transDate.getFullYear() === state.selectedYear;
+            });
+        }
+
+        // Calcular estatísticas
+        function calculateStats() {
+            const filtered = getFilteredTransactions();
+            
+            const totalIncome = filtered
+                .filter(t => t.type === 'income')
+                .reduce((sum, t) => sum + t.amount, 0);
+
+            const totalExpenses = filtered
+                .filter(t => t.type === 'expense')
+                .reduce((sum, t) => sum + t.amount, 0);
+
+            const totalPending = filtered
+                .filter(t => !t.paid && t.type === 'expense')
+                .reduce((sum, t) => sum + t.amount, 0);
+
+            const balance = totalIncome - totalExpenses;
+
+            return { totalIncome, totalExpenses, totalPending, balance };
+        }
+
+        // Renderizar estatísticas
+        function renderStats() {
+            const stats = calculateStats();
+            const statsGrid = document.getElementById('statsGrid');
+
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="label">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64ffb4" stroke-width="2">
+                            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                            <polyline points="17 6 23 6 23 12"></polyline>
+                        </svg>
+                        Receitas
+                    </div>
+                    <div class="value" style="color: #64ffb4;">R$ ${stats.totalIncome.toFixed(2)}</div>
+                </div>
+
+                <div class="stat-card" style="background: linear-gradient(135deg, rgba(255, 100, 100, 0.1) 0%, rgba(200, 60, 60, 0.05) 100%); border-color: rgba(255, 100, 100, 0.2);">
+                    <div class="label">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff6464" stroke-width="2">
+                            <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline>
+                            <polyline points="17 18 23 18 23 12"></polyline>
+                        </svg>
+                        Despesas
+                    </div>
+                    <div class="value" style="color: #ff6464;">R$ ${stats.totalExpenses.toFixed(2)}</div>
+                </div>
+
+                <div class="stat-card" style="background: linear-gradient(135deg, ${stats.balance >= 0 ? 'rgba(100, 255, 180, 0.1) 0%, rgba(60, 200, 140, 0.05)' : 'rgba(255, 100, 100, 0.1) 0%, rgba(200, 60, 60, 0.05)'} 100%); border-color: ${stats.balance >= 0 ? 'rgba(100, 255, 180, 0.2)' : 'rgba(255, 100, 100, 0.2)'};">
+                    <div class="label">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${stats.balance >= 0 ? '#64ffb4' : '#ff6464'}" stroke-width="2">
+                            <line x1="12" y1="1" x2="12" y2="23"></line>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                        Saldo
+                    </div>
+                    <div class="value" style="color: ${stats.balance >= 0 ? '#64ffb4' : '#ff6464'};">R$ ${stats.balance.toFixed(2)}</div>
+                </div>
+
+                <div class="stat-card" style="background: linear-gradient(135deg, rgba(255, 200, 100, 0.1) 0%, rgba(200, 150, 60, 0.05) 100%); border-color: rgba(255, 200, 100, 0.2);">
+                    <div class="label">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffc864" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        Pendente
+                    </div>
+                    <div class="value" style="color: #ffc864;">R$ ${stats.totalPending.toFixed(2)}</div>
+                </div>
+            `;
+        }
+
+        // Renderizar transações
+        function renderTransactions(container, transactions, limit = null) {
+            const items = limit ? transactions.slice(0, limit) : transactions;
+            
+            if (items.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #8b92b5; padding: 2rem;">Nenhuma transação neste mês</p>';
+                return;
+            }
+
+            container.innerHTML = items.map(t => `
+                <div class="transaction-row" style="border-left-color: ${t.type === 'income' ? '#64ffb4' : '#ff6464'};">
+                    <div class="transaction-info">
+                        <h4>${t.description}</h4>
+                        <div class="meta">${t.category} • ${new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')}</div>
+                    </div>
+                    <div class="transaction-actions" style="display: flex; gap: 0.5rem; align-items: center;">
+                        <div class="transaction-amount" style="color: ${t.type === 'income' ? '#64ffb4' : '#ff6464'};">
+                            ${t.type === 'income' ? '+' : '-'}R$ ${t.amount.toFixed(2)}
+                        </div>
+                        <button class="${t.paid ? 'btn-paid' : 'btn-pending'}" onclick="togglePaid('${t.firebaseId}')">
+                            ${t.paid ? '✓ Pago' : '✗ Pendente'}
+                        </button>
+                        <button onclick="openEditModal('${t.firebaseId}')" style="background: rgba(100, 180, 255, 0.1); color: #64b4ff; border: 1px solid #64b4ff; padding: 0.5rem; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; font-family: 'Space Grotesk', sans-serif; display: flex; align-items: center; gap: 0.25rem;" title="Editar">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                            Editar
+                        </button>
+                        <button onclick="cloneToNextMonth('${t.firebaseId}')" style="background: rgba(180, 100, 255, 0.1); color: #b464ff; border: 1px solid #b464ff; padding: 0.5rem; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; font-family: 'Space Grotesk', sans-serif; display: flex; align-items: center; gap: 0.25rem;" title="Clonar">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            Clonar
+                        </button>
+                        <button onclick="deleteTransaction('${t.firebaseId}')" style="background: rgba(255, 100, 100, 0.1); color: #ff6464; border: 1px solid #ff6464; padding: 0.5rem; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; font-family: 'Space Grotesk', sans-serif; display: flex; align-items: center; gap: 0.25rem;" title="Excluir">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                            Excluir
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Renderizar calendário
+        function renderCalendar() {
+            const firstDay = new Date(state.selectedYear, state.selectedMonth, 1);
+            const lastDay = new Date(state.selectedYear, state.selectedMonth + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startingDayOfWeek = firstDay.getDay();
+            
+            const filtered = getFilteredTransactions();
+            const container = document.getElementById('calendarDays');
+            let html = '';
+            
+            for (let i = 0; i < startingDayOfWeek; i++) {
+                html += '<div class="calendar-day empty"></div>';
+            }
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${state.selectedYear}-${String(state.selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayTransactions = filtered.filter(t => t.date === dateStr);
+                const pendingCount = dayTransactions.filter(t => !t.paid).length;
+                const paidCount = dayTransactions.filter(t => t.paid).length;
+                
+                html += `
+                    <div class="calendar-day ${dayTransactions.length > 0 ? 'has-transactions' : ''}">
+                        <div class="day-number">${day}</div>
+                        ${pendingCount > 0 ? `<div class="calendar-badge badge-pending">${pendingCount} pendente${pendingCount > 1 ? 's' : ''}</div>` : ''}
+                        ${paidCount > 0 ? `<div class="calendar-badge badge-paid">${paidCount} pago${paidCount > 1 ? 's' : ''}</div>` : ''}
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+
+            const pending = filtered
+                .filter(t => !t.paid && t.type === 'expense')
+                .sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            renderTransactions(document.getElementById('pendingPayments'), pending);
+        }
+
+        // Trocar Tab
+        function switchTab(tabName) {
+            state.activeTab = tabName;
+            
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName).classList.add('active');
+
+            updateUI();
+        }
+
+        // Atualizar UI
+        function updateUI() {
+            document.getElementById('currentMonth').textContent = 
+                `${months[state.selectedMonth]} ${state.selectedYear}`;
+
+            renderStats();
+
+            const filtered = getFilteredTransactions();
+
+            if (state.activeTab === 'dashboard') {
+                renderTransactions(document.getElementById('recentTransactions'), filtered, 10);
+            } else if (state.activeTab === 'transactions') {
+                renderTransactions(document.getElementById('allTransactions'), filtered);
+            } else if (state.activeTab === 'calendar') {
+                renderCalendar();
+            }
+        }
+
+        // Event Listeners
+        function setupEventListeners() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabName = tab.dataset.tab;
+                    switchTab(tabName);
+                });
+            });
+
+            document.getElementById('prevMonth').addEventListener('click', () => {
+                if (state.selectedMonth === 0) {
+                    state.selectedMonth = 11;
+                    state.selectedYear--;
+                } else {
+                    state.selectedMonth--;
+                }
+                updateUI();
+            });
+
+            document.getElementById('nextMonth').addEventListener('click', () => {
+                if (state.selectedMonth === 11) {
+                    state.selectedMonth = 0;
+                    state.selectedYear++;
+                } else {
+                    state.selectedMonth++;
+                }
+                updateUI();
+            });
+
+            document.getElementById('addTransactionBtn').addEventListener('click', openModal);
+            document.getElementById('addTransactionBtn2').addEventListener('click', openModal);
+            document.getElementById('cancelBtn').addEventListener('click', closeModal);
+            document.getElementById('addModal').addEventListener('click', (e) => {
+                if (e.target.id === 'addModal') closeModal();
+            });
+
+            document.getElementById('transactionForm').addEventListener('submit', handleAddTransaction);
+            document.getElementById('connectFirebaseBtn').addEventListener('click', connectFirebase);
+            document.getElementById('transactionDate').valueAsDate = new Date();
+        }
+
+        // Inicializar
+        function init() {
+            setupEventListeners();
+            updateUI();
+            autoConnectFirebase();
+        }
+
+        init();
+    </script>
+</body>
+</html>
