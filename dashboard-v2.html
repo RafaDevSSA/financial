@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Financeiro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            font-family: 'Space Grotesk', system-ui, sans-serif;
+            color: #e8e9f3;
+            padding: 2rem;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .header {
+            margin-bottom: 2rem;
+            animation: slideIn 0.5s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #64ffb4 0%, #3cc88c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .btn-back {
+            background: linear-gradient(135deg, #64ffb4 0%, #3cc88c 100%);
+            color: #0a0e27;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .btn-back:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(100, 255, 180, 0.4);
+        }
+
+        /* Firebase status banner */
+        #firebaseStatus {
+            display: none;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(30, 35, 60, 0.9);
+            border: 1px solid rgba(100, 255, 180, 0.2);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 2rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        #firebaseStatus.error {
+            border-color: rgba(255, 100, 100, 0.3);
+        }
+
+        #firebaseStatus .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(100, 255, 180, 0.3);
+            border-top-color: #64ffb4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            flex-shrink: 0;
+        }
+
+        #firebaseStatus .status-text {
+            color: #64ffb4;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        #firebaseStatus.error .status-text {
+            color: #ff6464;
+        }
+
+        /* Sem conexão Firebase */
+        #noFirebase {
+            display: none;
+            text-align: center;
+            background: rgba(30, 35, 60, 0.8);
+            border: 1px solid rgba(100, 255, 180, 0.1);
+            border-radius: 16px;
+            padding: 3rem 2rem;
+            margin-bottom: 2rem;
+            animation: slideIn 0.4s ease;
+        }
+
+        #noFirebase svg {
+            margin-bottom: 1rem;
+        }
+
+        #noFirebase h3 {
+            color: #64ffb4;
+            margin-bottom: 0.75rem;
+            font-size: 1.3rem;
+        }
+
+        #noFirebase p {
+            color: #8b92b5;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(30, 35, 60, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(100, 255, 180, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            animation: slideIn 0.6s ease-out;
+        }
+
+        .stat-card:hover {
+            border-color: rgba(100, 255, 180, 0.3);
+            transform: translateY(-2px);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card .label {
+            color: #8b92b5;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stat-card .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .stat-card .subtitle {
+            font-size: 0.85rem;
+            color: #8b92b5;
+            margin-top: 0.5rem;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card {
+            background: rgba(30, 35, 60, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(100, 255, 180, 0.1);
+            border-radius: 16px;
+            padding: 1.5rem;
+            animation: slideIn 0.7s ease-out;
+        }
+
+        .chart-card:hover {
+            border-color: rgba(100, 255, 180, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .chart-card h3 {
+            color: #64ffb4;
+            margin-bottom: 1.5rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .chart-container.tall {
+            height: 400px;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #8b92b5;
+            padding: 3rem;
+            font-size: 1.1rem;
+        }
+
+        .category-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .category-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: rgba(20, 25, 45, 0.5);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            border-left: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .category-item:hover {
+            background: rgba(30, 35, 60, 0.7);
+            border-left-color: #64ffb4;
+        }
+
+        .category-name {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .category-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        .category-amount {
+            font-weight: 600;
+            color: #ff6464;
+        }
+
+        .period-selector {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .period-btn {
+            background: rgba(30, 35, 60, 0.8);
+            border: 1px solid rgba(100, 255, 180, 0.2);
+            color: #8b92b5;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .period-btn:hover {
+            border-color: #64ffb4;
+            color: #64ffb4;
+        }
+
+        .period-btn.active {
+            background: linear-gradient(135deg, #64ffb4 0%, #3cc88c 100%);
+            color: #0a0e27;
+            border-color: transparent;
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 1rem; }
+            .header h1 { font-size: 2rem; }
+            .charts-grid { grid-template-columns: 1fr; }
+            .chart-container { height: 250px; }
+            .chart-container.tall { height: 350px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <div class="header">
+        <div>
+            <h1>📊 Dashboard Financeiro</h1>
+            <p style="color: #8b92b5; margin-top: 0.5rem;">Análise completa das suas finanças</p>
+        </div>
+        <a href="index.html" class="btn-back">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Voltar
+        </a>
+    </div>
+
+    <!-- Status Firebase (loading / erro) -->
+    <div id="firebaseStatus">
+        <div class="spinner" id="statusSpinner"></div>
+        <span class="status-text" id="statusText">Conectando ao Firebase...</span>
+    </div>
+
+    <!-- Sem conexão Firebase -->
+    <div id="noFirebase">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#8b92b5" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+            <path d="M2 17l10 5 10-5M2 12l10 5 10-5"></path>
+        </svg>
+        <h3>Firebase não configurado</h3>
+        <p>
+            Abra a aplicação principal, conecte ao Firebase<br>
+            e volte aqui para visualizar o dashboard.
+        </p>
+    </div>
+
+    <!-- Período -->
+    <div class="period-selector" id="periodSelector" style="display: none;">
+        <button class="period-btn" onclick="setPeriod('all', event)">Tudo</button>
+        <button class="period-btn active" onclick="setPeriod('year', event)">Este Ano</button>
+        <button class="period-btn" onclick="setPeriod('month', event)">Este Mês</button>
+        <button class="period-btn" onclick="setPeriod('last3', event)">Últimos 3 Meses</button>
+        <button class="period-btn" onclick="setPeriod('last6', event)">Últimos 6 Meses</button>
+    </div>
+
+    <!-- Resumo de Estatísticas -->
+    <div class="stats-grid" id="statsGrid" style="display: none;"></div>
+
+    <!-- Sem Dados -->
+    <div id="noData" class="no-data" style="display: none;">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#8b92b5" stroke-width="2">
+            <path d="M3 3v18h18"></path>
+            <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"></path>
+        </svg>
+        <p>Nenhuma transação encontrada para este período</p>
+        <p style="font-size: 0.9rem; margin-top: 0.5rem;">
+            Adicione transações na aplicação principal para ver suas estatísticas aqui.
+        </p>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="charts-grid" id="chartsGrid" style="display: none;"></div>
+
+    <script>
+        // ========== ESTADO ==========
+        let transactions = [];
+        let period = 'year';
+        let charts = {};
+
+        // Firebase
+        let firebaseApp = null;
+        let firebaseAuth = null;
+        let firebaseDb = null;
+        let firebaseUserId = null;
+        let firebaseUnsubscribe = null;
+
+        // ========== FIREBASE ==========
+
+        function getCollection() {
+            return firebaseDb
+                .collection('users')
+                .doc(firebaseUserId)
+                .collection('transactions');
+        }
+
+        function showStatus(message, type = 'loading') {
+            const el = document.getElementById('firebaseStatus');
+            const spinner = document.getElementById('statusSpinner');
+            const text = document.getElementById('statusText');
+
+            el.style.display = 'flex';
+            el.classList.toggle('error', type === 'error');
+            spinner.style.display = type === 'loading' ? 'block' : 'none';
+            text.textContent = message;
+
+            if (type !== 'loading') {
+                setTimeout(() => { el.style.display = 'none'; }, 3000);
+            }
+        }
+
+        function hideStatus() {
+            document.getElementById('firebaseStatus').style.display = 'none';
+        }
+
+        async function initFirebase() {
+            const saved = localStorage.getItem('firebaseConfig');
+
+            if (!saved) {
+                document.getElementById('noFirebase').style.display = 'block';
+                return;
+            }
+
+            showStatus('Conectando ao Firebase...');
+
+            try {
+                const config = JSON.parse(saved);
+
+                firebaseApp = firebase.initializeApp(
+                    { apiKey: config.apiKey, authDomain: config.authDomain, projectId: config.projectId },
+                    'dashboardApp'
+                );
+                firebaseAuth = firebaseApp.auth();
+                firebaseDb = firebaseApp.firestore();
+
+                // Autenticar: email/senha ou anônimo
+                if (config.email) {
+                    const cred = await firebaseAuth.signInWithEmailAndPassword(config.email, config.password || '');
+                    firebaseUserId = cred.user.uid;
+                } else {
+                    const cred = await firebaseAuth.signInAnonymously();
+                    firebaseUserId = cred.user.uid;
+                }
+
+                setupRealtimeListener();
+
+            } catch (error) {
+                console.error('Erro ao conectar Firebase:', error);
+                showStatus('Erro ao conectar ao Firebase: ' + error.message, 'error');
+                document.getElementById('noFirebase').style.display = 'block';
+            }
+        }
+
+        function setupRealtimeListener() {
+            if (firebaseUnsubscribe) firebaseUnsubscribe();
+
+            showStatus('Carregando transações...');
+
+            firebaseUnsubscribe = getCollection()
+                .orderBy('date', 'desc')
+                .onSnapshot(
+                    (snapshot) => {
+                        transactions = snapshot.docs.map(doc => ({
+                            firebaseId: doc.id,
+                            ...doc.data()
+                        }));
+
+                        hideStatus();
+                        document.getElementById('noFirebase').style.display = 'none';
+                        document.getElementById('periodSelector').style.display = 'flex';
+                        updateDashboard();
+                    },
+                    (error) => {
+                        console.error('Erro no listener Firestore:', error);
+                        showStatus('Erro ao sincronizar dados', 'error');
+                    }
+                );
+        }
+
+        // ========== PERÍODO ==========
+
+        function setPeriod(newPeriod, event) {
+            period = newPeriod;
+            document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
+            if (event && event.target) event.target.classList.add('active');
+            updateDashboard();
+        }
+
+        function filterByPeriod(data) {
+            const now = new Date();
+
+            return data.filter(t => {
+                const date = new Date(t.date + 'T00:00:00');
+
+                switch (period) {
+                    case 'all':    return true;
+                    case 'year':   return date.getFullYear() === now.getFullYear();
+                    case 'month':  return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+                    case 'last3': {
+                        const from = new Date(now); from.setMonth(now.getMonth() - 3);
+                        return date >= from;
+                    }
+                    case 'last6': {
+                        const from = new Date(now); from.setMonth(now.getMonth() - 6);
+                        return date >= from;
+                    }
+                    default: return true;
+                }
+            });
+        }
+
+        // ========== ESTATÍSTICAS ==========
+
+        function calculateStats(data) {
+            const income   = data.filter(t => t.type === 'income');
+            const expenses = data.filter(t => t.type === 'expense');
+
+            const totalIncome   = income.reduce((s, t) => s + t.amount, 0);
+            const totalExpenses = expenses.reduce((s, t) => s + t.amount, 0);
+            const balance       = totalIncome - totalExpenses;
+
+            const pendingExpenses = expenses.filter(t => !t.paid).reduce((s, t) => s + t.amount, 0);
+            const paidRate = expenses.length > 0
+                ? (expenses.filter(t => t.paid).length / expenses.length * 100).toFixed(1)
+                : 0;
+
+            const dates    = [...new Set(expenses.map(t => t.date))];
+            const avgDaily = dates.length > 0 ? (totalExpenses / dates.length).toFixed(2) : 0;
+
+            return {
+                totalIncome, totalExpenses, balance,
+                pendingExpenses, paidRate, avgDaily,
+                transactionCount: data.length,
+                incomeCount:  income.length,
+                expenseCount: expenses.length
+            };
+        }
+
+        function renderStats(stats) {
+            document.getElementById('statsGrid').innerHTML = `
+                <div class="stat-card" style="background: linear-gradient(135deg, rgba(100,255,180,0.1) 0%, rgba(60,200,140,0.05) 100%); border-color: rgba(100,255,180,0.2);">
+                    <div class="label">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64ffb4" stroke-width="2">
+                            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                            <polyline points="17 6 23 6 23 12"></polyline>
+                        </svg>
+                        Receitas
+                    </div>
+                    <div class="value" style="color:#64ffb4;">R$ ${stats.totalIncome.toFixed(2)}</div>
+                    <div class="subtitle">${stats.incomeCount} transação(ões)</div>
+                </div>
+
+                <div class="stat-card" style="background: linear-gradient(135deg, rgba(255,100,100,0.1) 0%, rgba(200,60,60,0.05) 100%); border-color: rgba(255,100,100,0.2);">
+                    <div class="label">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff6464" stroke-width="2">
+                            <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline>
+                            <polyline points="17 18 23 18 23 12"></polyline>
+                        </svg>
+                        Despesas
+                    </div>
+                    <div class="value" style="color:#ff6464;">R$ ${stats.totalExpenses.toFixed(2)}</div>
+                    <div class="subtitle">${stats.expenseCount} transação(ões)</div>
+                </div>
+
+                <div class="stat-card" style="background: linear-gradient(135deg, ${stats.balance >= 0 ? 'rgba(100,255,180,0.1) 0%, rgba(60,200,140,0.05)' : 'rgba(255,100,100,0.1) 0%, rgba(200,60,60,0.05)'} 100%); border-color: ${stats.balance >= 0 ? 'rgba(100,255,180,0.2)' : 'rgba(255,100,100,0.2)'};">
+                    <div class="label">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${stats.balance >= 0 ? '#64ffb4' : '#ff6464'}" stroke-width="2">
+                            <line x1="12" y1="1" x2="12" y2="23"></line>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                        Saldo
+                    </div>
+                    <div class="value" style="color:${stats.balance >= 0 ? '#64ffb4' : '#ff6464'};">R$ ${stats.balance.toFixed(2)}</div>
+                    <div class="subtitle">${stats.balance >= 0 ? 'Positivo' : 'Negativo'}</div>
+                </div>
+
+                <div class="stat-card" style="background: linear-gradient(135deg, rgba(100,180,255,0.1) 0%, rgba(60,140,200,0.05) 100%); border-color: rgba(100,180,255,0.2);">
+                    <div class="label">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64b4ff" stroke-width="2">
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                        </svg>
+                        Média Diária
+                    </div>
+                    <div class="value" style="color:#64b4ff;">R$ ${stats.avgDaily}</div>
+                    <div class="subtitle">Gastos por dia</div>
+                </div>
+
+                <div class="stat-card" style="background: linear-gradient(135deg, rgba(255,200,100,0.1) 0%, rgba(200,150,60,0.05) 100%); border-color: rgba(255,200,100,0.2);">
+                    <div class="label">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffc864" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                        Taxa de Pagamento
+                    </div>
+                    <div class="value" style="color:#ffc864;">${stats.paidRate}%</div>
+                    <div class="subtitle">${stats.expenseCount > 0 ? `${Math.round(stats.paidRate / 100 * stats.expenseCount)} de ${stats.expenseCount}` : 'Sem despesas'}</div>
+                </div>
+
+                <div class="stat-card" style="background: linear-gradient(135deg, rgba(180,100,255,0.1) 0%, rgba(140,60,200,0.05) 100%); border-color: rgba(180,100,255,0.2);">
+                    <div class="label">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b464ff" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        Pendente
+                    </div>
+                    <div class="value" style="color:#b464ff;">R$ ${stats.pendingExpenses.toFixed(2)}</div>
+                    <div class="subtitle">A pagar</div>
+                </div>
+            `;
+        }
+
+        // ========== GRÁFICOS ==========
+
+        const colors = [
+            '#64ffb4', '#ff6464', '#64b4ff', '#ffc864', '#b464ff',
+            '#ff64b4', '#64ffff', '#ffb464', '#b4ff64', '#ff64ff'
+        ];
+
+        const chartDefaults = {
+            tooltip: {
+                backgroundColor: 'rgba(30, 35, 60, 0.95)',
+                titleColor: '#64ffb4',
+                bodyColor: '#e8e9f3',
+                borderColor: '#64ffb4',
+                borderWidth: 1,
+                padding: 12
+            },
+            legend: {
+                color: '#e8e9f3',
+                font: { family: 'Space Grotesk', size: 13 }
+            },
+            axis: {
+                ticks: { color: '#8b92b5', font: { family: 'Space Grotesk' } },
+                grid:  { color: 'rgba(139, 146, 181, 0.1)' }
+            }
+        };
+
+        function groupByCategory(data) {
+            const groups = {};
+            data.filter(t => t.type === 'expense').forEach(t => {
+                const cat = t.category || 'Sem categoria';
+                groups[cat] = (groups[cat] || 0) + t.amount;
+            });
+            return Object.entries(groups)
+                .sort((a, b) => b[1] - a[1])
+                .map(([name, amount]) => ({ name, amount }));
+        }
+
+        function groupByMonth(data) {
+            const months = {};
+            data.forEach(t => {
+                const date = new Date(t.date + 'T00:00:00');
+                const key  = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                if (!months[key]) months[key] = { income: 0, expenses: 0 };
+                if (t.type === 'income') months[key].income   += t.amount;
+                else                     months[key].expenses += t.amount;
+            });
+            return Object.entries(months)
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .map(([month, d]) => ({ month, ...d, balance: d.income - d.expenses }));
+        }
+
+        function monthLabel(monthStr) {
+            const [year, month] = monthStr.split('-');
+            return new Date(year, parseInt(month) - 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+        }
+
+        function createCategoryChart(data) {
+            const categories = groupByCategory(data);
+            if (!categories.length) return null;
+
+            const ctx = document.createElement('canvas');
+            return new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: categories.map(c => c.name),
+                    datasets: [{ data: categories.map(c => c.amount), backgroundColor: colors, borderColor: '#1a1f3a', borderWidth: 2 }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { color: chartDefaults.legend.color, padding: 15, font: chartDefaults.legend.font } },
+                        tooltip: {
+                            ...chartDefaults.tooltip,
+                            callbacks: {
+                                label: ctx => {
+                                    const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                    return `${ctx.label}: R$ ${ctx.raw.toFixed(2)} (${((ctx.raw / total) * 100).toFixed(1)}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createMonthlyChart(data) {
+            const monthly = groupByMonth(data);
+            if (!monthly.length) return null;
+
+            const ctx = document.createElement('canvas');
+            return new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: monthly.map(m => monthLabel(m.month)),
+                    datasets: [
+                        { label: 'Receitas',  data: monthly.map(m => m.income),   backgroundColor: 'rgba(100,255,180,0.8)', borderColor: '#64ffb4', borderWidth: 2 },
+                        { label: 'Despesas',  data: monthly.map(m => m.expenses), backgroundColor: 'rgba(255,100,100,0.8)', borderColor: '#ff6464', borderWidth: 2 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: chartDefaults.legend.color, font: chartDefaults.legend.font } },
+                        tooltip: { ...chartDefaults.tooltip, callbacks: { label: ctx => `${ctx.dataset.label}: R$ ${ctx.raw.toFixed(2)}` } }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { ...chartDefaults.axis.ticks, callback: v => 'R$ ' + v.toFixed(0) }, grid: chartDefaults.axis.grid },
+                        x: { ticks: chartDefaults.axis.ticks, grid: chartDefaults.axis.grid }
+                    }
+                }
+            });
+        }
+
+        function createBalanceChart(data) {
+            const monthly = groupByMonth(data);
+            if (!monthly.length) return null;
+
+            const ctx = document.createElement('canvas');
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: monthly.map(m => monthLabel(m.month)),
+                    datasets: [{
+                        label: 'Saldo',
+                        data: monthly.map(m => m.balance),
+                        borderColor: '#64ffb4',
+                        backgroundColor: 'rgba(100,255,180,0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: '#64ffb4',
+                        pointBorderColor: '#1a1f3a',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: chartDefaults.legend.color, font: chartDefaults.legend.font } },
+                        tooltip: { ...chartDefaults.tooltip, callbacks: { label: ctx => `Saldo: R$ ${ctx.raw.toFixed(2)}` } }
+                    },
+                    scales: {
+                        y: { ticks: { ...chartDefaults.axis.ticks, callback: v => 'R$ ' + v.toFixed(0) }, grid: chartDefaults.axis.grid },
+                        x: { ticks: chartDefaults.axis.ticks, grid: chartDefaults.axis.grid }
+                    }
+                }
+            });
+        }
+
+        function createTopCategoriesList(data) {
+            const categories = groupByCategory(data).slice(0, 10);
+            if (!categories.length) return null;
+
+            const list = document.createElement('ul');
+            list.className = 'category-list';
+
+            categories.forEach((cat, i) => {
+                const item = document.createElement('li');
+                item.className = 'category-item';
+                item.innerHTML = `
+                    <div class="category-name">
+                        <span class="category-color" style="background: ${colors[i % colors.length]};"></span>
+                        <span>${cat.name}</span>
+                    </div>
+                    <span class="category-amount">R$ ${cat.amount.toFixed(2)}</span>
+                `;
+                list.appendChild(item);
+            });
+
+            return list;
+        }
+
+        function renderCharts(data) {
+            const chartsGrid = document.getElementById('chartsGrid');
+            chartsGrid.innerHTML = '';
+
+            // Destruir instâncias anteriores
+            Object.values(charts).forEach(c => c && c.destroy && c.destroy());
+            charts = {};
+
+            const sections = [
+                {
+                    key: 'category',
+                    title: '💰 Gastos por Categoria',
+                    create: () => createCategoryChart(data),
+                    isList: false
+                },
+                {
+                    key: 'monthly',
+                    title: '📊 Receitas vs Despesas',
+                    create: () => createMonthlyChart(data),
+                    isList: false
+                },
+                {
+                    key: 'balance',
+                    title: '📈 Evolução do Saldo',
+                    create: () => createBalanceChart(data),
+                    isList: false
+                },
+                {
+                    key: 'top',
+                    title: '🏆 Top 10 Categorias',
+                    create: () => createTopCategoriesList(data),
+                    isList: true
+                }
+            ];
+
+            sections.forEach(({ key, title, create, isList }) => {
+                const card = document.createElement('div');
+                card.className = 'chart-card';
+                const containerStyle = isList ? 'height: auto; overflow-y: auto;' : '';
+                const containerClass = isList ? 'chart-container tall' : 'chart-container';
+                card.innerHTML = `<h3>${title}</h3><div class="${containerClass}" style="${containerStyle}"></div>`;
+
+                const result = create();
+                if (result) {
+                    const container = card.querySelector('.chart-container');
+                    container.appendChild(isList ? result : result.canvas);
+                    if (!isList) charts[key] = result;
+                } else {
+                    card.querySelector('.chart-container').innerHTML =
+                        '<p class="no-data" style="padding: 2rem;">Sem dados para exibir</p>';
+                }
+
+                chartsGrid.appendChild(card);
+            });
+        }
+
+        // ========== DASHBOARD ==========
+
+        function updateDashboard() {
+            const filtered = filterByPeriod(transactions);
+
+            const hasData  = filtered.length > 0;
+            document.getElementById('noData').style.display    = hasData ? 'none'  : 'block';
+            document.getElementById('statsGrid').style.display = hasData ? 'grid'  : 'none';
+            document.getElementById('chartsGrid').style.display = hasData ? 'grid' : 'none';
+
+            if (!hasData) return;
+
+            renderStats(calculateStats(filtered));
+            renderCharts(filtered);
+        }
+
+        // ========== INIT ==========
+        initFirebase();
+    </script>
+</body>
+</html>
