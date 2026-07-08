@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quita Aí — Rumo à liberdade financeira</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-etapa="0">
+
+  <!-- ============ CENA DO HORIZONTE (muda conforme o progresso) ============ -->
+  <header class="ceu" id="ceu">
+    <svg class="ceu__cena" viewBox="0 0 1000 380" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+      <defs>
+        <linearGradient id="gradCeu" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  class="ceu-topo" />
+          <stop offset="100%" class="ceu-base" />
+        </linearGradient>
+        <radialGradient id="gradSol" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"  class="sol-nucleo" />
+          <stop offset="70%" class="sol-brilho" />
+          <stop offset="100%" stop-color="transparent" />
+        </radialGradient>
+      </defs>
+      <rect x="0" y="0" width="1000" height="380" fill="url(#gradCeu)" />
+      <g id="estrelas" class="estrelas"></g>
+      <circle id="sol" cx="500" cy="360" r="90" fill="url(#gradSol)" />
+      <!-- morros do horizonte -->
+      <path class="morro morro--fundo"  d="M0,320 Q180,240 360,300 T720,290 T1000,310 V380 H0 Z" />
+      <path class="morro morro--frente" d="M0,350 Q220,290 440,335 T860,330 T1000,345 V380 H0 Z" />
+    </svg>
+
+    <div class="ceu__conteudo">
+      <p class="ceu__etapa" id="etapaNome">Noite</p>
+      <p class="ceu__rotulo">Falta quitar</p>
+      <h1 class="ceu__valor" id="valorRestante">R$ 0,00</h1>
+      <p class="ceu__mensagem" id="mensagemMotivacional">Cadastre suas dívidas e comece a jornada.</p>
+    </div>
+  </header>
+
+  <main class="painel">
+
+    <!-- ============ PROGRESSO GERAL ============ -->
+    <section class="progresso" aria-label="Progresso geral">
+      <div class="progresso__cabecalho">
+        <span class="progresso__titulo">Jornada de quitação</span>
+        <span class="progresso__percentual" id="percentualQuitado">0%</span>
+      </div>
+      <div class="progresso__trilha" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="barraProgresso">
+        <div class="progresso__preenchimento" id="preenchimentoProgresso"></div>
+      </div>
+      <div class="progresso__estatisticas">
+        <div class="estatistica">
+          <span class="estatistica__rotulo">Total das dívidas</span>
+          <span class="estatistica__valor" id="totalOriginal">R$ 0,00</span>
+        </div>
+        <div class="estatistica">
+          <span class="estatistica__rotulo">Já quitado</span>
+          <span class="estatistica__valor estatistica__valor--positivo" id="totalPago">R$ 0,00</span>
+        </div>
+        <div class="estatistica">
+          <span class="estatistica__rotulo">Pago este mês</span>
+          <span class="estatistica__valor" id="pagoNoMes">R$ 0,00</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ LISTA DE DÍVIDAS ============ -->
+    <section class="dividas" aria-label="Minhas dívidas">
+      <div class="dividas__cabecalho">
+        <h2 class="dividas__titulo">Minhas dívidas</h2>
+        <button class="botao botao--primario" id="botaoNovaDivida">+ Nova dívida</button>
+      </div>
+      <ul class="dividas__lista" id="listaDividas"></ul>
+      <p class="dividas__vazio" id="estadoVazio">
+        Nenhuma dívida cadastrada ainda.<br />
+        Adicione o valor total de cada dívida e registre os pagamentos mês a mês para ver o horizonte clarear.
+      </p>
+    </section>
+
+    <!-- ============ HISTÓRICO DE PAGAMENTOS POR MÊS ============ -->
+    <section class="historico" aria-label="Histórico de pagamentos" id="secaoHistorico">
+      <h2 class="historico__titulo">Histórico de pagamentos</h2>
+      <div class="historico__lista" id="listaHistorico"></div>
+      <p class="historico__vazio" id="historicoVazio">
+        Nenhum pagamento registrado ainda. Cada pagamento aparecerá aqui, agrupado por mês.
+      </p>
+    </section>
+  </main>
+
+  <footer class="rodape">
+    <p>Seus dados ficam salvos apenas neste navegador (localStorage).</p>
+    <button class="botao botao--fantasma botao--perigo" id="botaoLimparTudo">Apagar todos os dados</button>
+  </footer>
+
+  <!-- ============ MODAL: NOVA DÍVIDA ============ -->
+  <dialog class="modal" id="modalNovaDivida">
+    <h3 class="modal__titulo" id="tituloModalDivida">Nova dívida</h3>
+    <label class="campo">
+      <span class="campo__rotulo">Nome da dívida</span>
+      <input class="campo__entrada" type="text" id="entradaNomeDivida" placeholder="Ex.: Financiamento do carro" maxlength="60" />
+    </label>
+    <label class="campo">
+      <span class="campo__rotulo">Valor total (R$)</span>
+      <input class="campo__entrada" type="number" id="entradaValorDivida" placeholder="Ex.: 25000" min="0.01" step="0.01" inputmode="decimal" />
+    </label>
+    <div class="modal__acoes">
+      <button class="botao botao--fantasma" id="botaoCancelarDivida">Cancelar</button>
+      <button class="botao botao--primario" id="botaoSalvarDivida">Salvar dívida</button>
+    </div>
+  </dialog>
+
+  <!-- ============ MODAL: REGISTRAR PAGAMENTO ============ -->
+  <dialog class="modal" id="modalPagamento">
+    <h3 class="modal__titulo">Registrar pagamento</h3>
+    <p class="modal__subtitulo" id="pagamentoNomeDivida"></p>
+    <label class="campo">
+      <span class="campo__rotulo">Valor pago (R$)</span>
+      <input class="campo__entrada" type="number" id="entradaValorPagamento" placeholder="Ex.: 500" min="0.01" step="0.01" inputmode="decimal" />
+    </label>
+    <p class="campo__ajuda" id="pagamentoSaldoAjuda"></p>
+    <div class="modal__acoes">
+      <button class="botao botao--fantasma" id="botaoCancelarPagamento">Cancelar</button>
+      <button class="botao botao--primario" id="botaoConfirmarPagamento">Confirmar</button>
+    </div>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
